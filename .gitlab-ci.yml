@@ -2,12 +2,18 @@ image: gcc
 
 stages:
   - build
-  - test
 
-build binary:
+build:
   stage: build
-  script: make
+  except:
+   - schedules
+  script: 
+   - make test
 
-run tests:
-  stage: test
-  script: make test
+build:on-schedule:
+   stage: build
+   only: 
+    - schedules
+   script: 
+    - make future
+
