@@ -75,6 +75,12 @@ bytecode: bin/ol
 benchmark: bin/radamsa
 	tests/benchmark bin/radamsa
 
+future:
+	test -d owl || git clone https://gitlab.com/owl-lisp/owl
+	cd owl && git pull
+	-cd owl && make
+	test -x owl/bin/ol && make USR_BIN_OL=owl/bin/ol
+
 uninstall:
 	rm $(DESTDIR)$(PREFIX)/bin/radamsa || echo "no radamsa"
 	rm $(DESTDIR)$(PREFIX)/share/man/man1/radamsa.1.gz || echo "no manpage"
