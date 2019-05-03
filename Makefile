@@ -5,7 +5,7 @@ CFLAGS?=-Wall -O2
 LDFLAGS?=
 OFLAGS=-O2
 OWLURL=https://gitlab.com/owl-lisp/owl/uploads/87ffa9dad2bc59fc0ac5efcd90db4c7c/ol-0.1.16.c.gz
-USR_BIN_OL=/usr/bin/ol
+USR_BIN_OL?=/usr/bin/ol
 
 everything: bin/radamsa
 
@@ -78,8 +78,8 @@ benchmark: bin/radamsa
 future:
 	test -d owl || git clone https://gitlab.com/owl-lisp/owl
 	cd owl && git pull
-	-cd owl && make
-	test -x owl/bin/ol && make USR_BIN_OL=owl/bin/ol
+	-cd owl && make build
+	test -x owl/bin/ol && make USR_BIN_OL=owl/bin/ol build_radamsa
 
 uninstall:
 	rm $(DESTDIR)$(PREFIX)/bin/radamsa || echo "no radamsa"
