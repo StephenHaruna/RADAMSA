@@ -20,6 +20,8 @@
 
    (begin
 
+      (define null '())
+      
       (define (rand-block-size rs)
          (lets ((rs n (rand rs max-block-size)))
             (values rs (max n min-block-size))))
@@ -39,7 +41,7 @@
       (define (stream-port rs port)
          (lets ((rs first (rand-block-size rs)))
             (let loop ((rs rs) (last #false) (wanted first) (len 0)) ;; 0 = block ready (if any)
-               (let ((block (get-block port wanted)))
+               (let ((block (read-bytevector wanted port)))
                   (cond
                      ((eof-object? block) ;; end of stream
                         (if (not (eq? port stdin)) (close-port port))
@@ -80,7 +82,7 @@
                            (halt 1))))
                   default-endianness)))
          (define (read-block-header port)
-            (let ((block-header (get-block port 8)))
+            (let ((block-header (read-bytevector 8 port)))
                (cond 
                   ((eof-object? block-header)
                      (close-port port)
@@ -95,7 +97,7 @@
             (let* ((block-type (bytes->uint32 (take block-header 4)))
                    (block-length (bytes->uint32 (drop block-header 4)))
                    (block-content-length (- block-length 12))
-                   (block-content (get-block port block-content-length)))
+                   (block-content (read-bytevector block-content-length port)))
                (cond 
                   ((eof-object? block-content)
                      (print "pcapng-port->stream: cannot read block content, encountered end of file earlier than expected")
@@ -109,7 +111,7 @@
                      (halt 3)))))
          (define (read-last-block-length port block-header)
             (let ((expected-block-length (bytes->uint32 (drop block-header 4)))
-                  (last-block-length (get-block port 4)))
+                  (last-block-length (read-bytevector 4 port)))
                (cond 
                   ((eof-object? last-block-length)
                      (print "pcapng-port->stream:  cannot read last block length, encountered end of file earlier than expected")
@@ -129,7 +131,7 @@
                      (if (not (null? block-content))
                         (let ((last-block-length (read-last-block-length port block-header)))
                            (if (not (null? last-block-length))
-                              (values (list->byte-vector (append block-header (append block-content last-block-length)))
+                              (values (list->bytevector (append block-header (append block-content last-block-length)))
                                  (recognize-endianness block-header block-content endianness)
                                  (equal? '(#x06 #x00 #x00 #x00) (take block-header 4)))
                               (values null endianness #false)))
@@ -165,9 +167,9 @@
 
       (define (random-block rs n out)
          (if (eq? n 0)
-            (values rs (list->byte-vector out))
+            (values rs (list->bytevector out))
             (lets ((digit rs (uncons rs #f)))
-               (random-block rs (- n 1) (cons (fxband digit 255) out)))))
+               (random-block rs (- n 1) (cons (fxand digit 255) out)))))
 
       (define (random-stream rs)
          (lets 
@@ -194,11 +196,11 @@
       ;; paths → (rs → rs' ll|#false meta|error-str)
       (define (file-streamer paths)
          (lets
-            ((n (vec-len paths)))
+            ((n (vector-length paths)))
             (define (gen rs)
                (lets
                   ((rs n (rand rs n))
-                   (path (vec-ref paths n))
+                   (path (vector-ref paths n))
                    (port (open-input-file path)))
                   (if port
                      (lets ((rs ll (port->stream rs port)))
@@ -209,9 +211,9 @@
 
       (define (pcapng-streamer paths)
          (define (gen rs)
-            (if (= (vec-len paths) 1)
+            (if (= (vector-length paths) 1)
                (lets 
-                  ((path (vec-ref paths 0))
+                  ((path (vector-ref paths 0))
                    (port (open-input-file path)))
                   (if port
                      (values rs (pcapng-port->stream port)
@@ -237,7 +239,7 @@
                       (b (vector->list b))
                       (rs ab (fuse rs a b)))
                      (consume as)
-                     (cons (list->byte-vector ab) bs))))
+                     (cons (list->bytevector ab) bs))))
              (rs n (rand rs ip))
              (ip (+ ip 1)))
              (if (eq? n 0)
@@ -265,13 +267,13 @@
                lb)))
 
       (define (jump-streamer paths)
-         (lets ((n (vec-len paths)))
+         (lets ((n (vector-length paths)))
             (define (gen rs)
                (lets
                   ((rs ap (rand rs n))
                    (rs bp (rand rs n))
-                   (a (vec-ref paths ap))
-                   (b (vec-ref paths bp))
+                   (a (vector-ref paths ap))
+                   (b (vector-ref paths bp))
                    (pa (open-input-file a))
                    (pb (open-input-file b)))
                   (cond

@@ -18,6 +18,8 @@
    
    (begin
 
+      (define null '())
+      
       (define (empty-digests max)
          (tuple #empty max 0))
          
@@ -58,14 +60,14 @@
                 (a (<< a 16))
                 (b (<< b 8)))
                (pair
-                  (fxbor (fxbor a b) c)
+                  (fxior (fxior a b) c)
                   (bs->trits bs)))))
 
       (define (trit a b c)
          (lets
             ((a (<< a 16))
              (b (<< b 8)))
-            (fxbor (fxbor a b) c)))
+            (fxior (fxior a b) c)))
              
       (define (get-trit ll)
          (cond
@@ -90,8 +92,8 @@
       (define (pollinate a b)
          (lets ((ah a (fx>> a 21))
                 (bh b (fx>> b 21))
-                (a (fxbor a bh))
-                (b (fxbor b ah)))
+                (a (fxior a bh))
+                (b (fxior b ah)))
             (values a b)))
                
       (define (digest ll)
@@ -100,15 +102,15 @@
                (if (null? ll)
                   ;(list len fst a sum par lag)
                   (list 
-                     (band #xffffff (bor (<< sum 10) len))
-                     (if (= fst a) fst (fxbxor fst a))
+                     (band #xffffff (bior (<< sum 10) len))
+                     (if (= fst a) fst (fxxor fst a))
                      par 
                      lag)
                   (lets ((b n ll (get-trit ll))
                          (sum _ (fx+ sum b))
                          (len _ (fx+ len n))
-                         (par (fxbxor par b)))
-                        (if (eq? (fxband len #b1) #b1)
+                         (par (fxxor par b)))
+                        (if (eq? (fxand len #b1) #b1)
                            (lets ((par lag (pollinate par lag)))
                               (loop ll b sum len par lag))
                            (lets ((sum par (pollinate sum par)))
@@ -131,7 +133,7 @@
                (cons trit (loop lst 0 0)))
             (else
                (loop (cdr lst)
-                  (bor (<< trit 8) (car lst))
+                  (bior (<< trit 8) (car lst))
                   (+ n 1))))))
                
    (define (hash-sha256 lst)

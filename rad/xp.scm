@@ -10,7 +10,7 @@
    (import
       (owl base)
       (rad shared)
-      (owl parse))
+      (prefix (owl parse) get-))
 
     (begin
 
@@ -18,6 +18,8 @@
       ;;; Parsing (bytes → nodes, but no tree structure)
       ;;;
 
+      (define null '())
+      
       ; XP = #(bytes (byte ...))       -- nothing interesting structurally
       ;    | #(open name attrs)        -- was <foo attrs>
       ;    | #(open-single name attrs) -- was <foo attrs />
@@ -35,15 +37,15 @@
             null listish))
 
       (define xp-whitespace
-         (one-of
+         (get-one-of
             (get-imm #\space)
             (get-imm #\newline)))
 
       (define xp-optwhite
-         (get-greedy* xp-whitespace))
+         (get-greedy-star xp-whitespace))
      
       (define xp-string-delim
-         (one-of
+         (get-one-of
             (get-imm #\")
             (get-imm #\')))
 
@@ -57,14 +59,14 @@
                   (else #false)))))
 
       (define xp-label 
-         (get-greedy+ xp-alnum))
+         (get-greedy-plus xp-alnum))
 
       (define (get-quoted-upto delim)
-         (let-parses
+         (get-parses
             ((chars
-               (get-greedy*
+               (get-greedy-star
                   (get-either
-                     (let-parses
+                     (get-parses
                         ((quote (get-imm #\\))
                          (byte get-byte))
                         (cons #\\ byte))
@@ -74,20 +76,20 @@
 
       (define xp-attr-value
          (get-either
-            (let-parses
+            (get-parses
                ((delim xp-string-delim)
                 (chars (get-quoted-upto delim)))
                (cons delim chars))
             xp-label))
 
      (define xp-attr
-         (let-parses
+         (get-parses
             ((skip xp-optwhite)
              (name xp-label)
              (skip xp-optwhite)
              (val
                (get-either
-                  (let-parses
+                  (get-parses
                      ((skip (get-imm #\=))
                       (skip xp-optwhite)
                       (val xp-attr-value))
@@ -97,23 +99,23 @@
 
       ;; part after <
       (define xp-tag-open
-         (let-parses
+         (get-parses
             ((tag xp-label)
-             (attrs (get-greedy* xp-attr))
+             (attrs (get-greedy-star xp-attr))
              (skip xp-optwhite)
              (tag-type 
-               (one-of
-                  (let-parses ((skip (get-imm #\>))) 'open)
-                  (let-parses ((skip (get-imm #\/)) (skip (get-imm #\>))) 'open-single))))
+               (get-one-of
+                  (get-parses ((skip (get-imm #\>))) 'open)
+                  (get-parses ((skip (get-imm #\/)) (skip (get-imm #\>))) 'open-single))))
             (tuple tag-type tag attrs)))
 
       ;; part at < 
       (define xp-tag-open/close
-         (let-parses
+         (get-parses
             ((skip (get-imm #\<))
              (val 
                (get-either
-                  (let-parses
+                  (get-parses
                      ((skip (get-imm #\/))
                       (name xp-label)
                       (skip xp-optwhite)
@@ -130,8 +132,8 @@
             (else #true)))
 
       (define xp-uninteresting
-         (let-parses 
-            ((bs (get-greedy* (get-byte-if uninteresting?))))
+         (get-parses 
+            ((bs (get-greedy-star (get-byte-if uninteresting?))))
             (tuple 'bytes bs)))
 
       ;; byte + bytes -> bytes', byte + node  -> ((bytes (byte)) node)
@@ -148,17 +150,17 @@
          (tuple 'bytes null))
 
       (define xp-parser 
-         (get-greedy* 
-            (one-of
+         (get-greedy-star
+            (get-one-of
                xp-tag-open/close
-               (let-parses
+               (get-parses
                   ((this get-byte)
                    (boring xp-uninteresting))
                   (add this boring)))))
 
       ;; note - this is actually more like a lexer
       (define (xp-parse lst)  
-         (try-parse xp-parser lst "bug" "bug - everything should be parseable" #false))
+         (get-try-parse xp-parser lst "bug" "bug - everything should be parseable" #false))
 
 
       ;;;
@@ -633,7 +635,7 @@
       (define (pumps rs)
          (let loop ((rs rs) (max 2))
             (lets ((x rs (uncons rs #false)))
-               (if (or (eq? 0 (fxband x 1)) (eq? max max-pump-limit))
+               (if (or (eq? 0 (fxand x 1)) (eq? max max-pump-limit))
                   (lets ((rs n (rand rs max)))
                      (values rs (+ n 2)))
                   (loop rs (<< max 1))))))
@@ -644,7 +646,7 @@
             (if (null? lst) 
                (values rs this)
                (lets ((d rs (uncons rs #false)))
-                  (if (eq? 0 (fxband d 1))
+                  (if (eq? 0 (fxand d 1))
                      (values rs this)
                      (loop rs (car lst) (cdr lst)))))))
 

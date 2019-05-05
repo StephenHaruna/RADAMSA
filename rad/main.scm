@@ -23,6 +23,8 @@
 
    (begin
 
+      (define null '())
+      
       (define (string->count str)
          (cond
             ((member str '("inf" "infinity" "-1" "forever"))
@@ -95,7 +97,7 @@ Radamsa was written by Aki Helin, initially at OUSPG.")
       (define (urandom-seed)
          (let ((fd (open-input-file "/dev/urandom"))) ;; #false if not there
             (if fd
-               (let ((data (get-block fd 10)))
+               (let ((data (read-bytevector 10 fd)))
                   (close-port fd)
                   (if (vector? data)
                      (vec-fold (λ (n d) (+ d (<< n 8))) 0 data)
@@ -105,7 +107,7 @@ Radamsa was written by Aki Helin, initially at OUSPG.")
       ;; () → string (decimal number)
       (define (time-seed)
          (fold 
-            (lambda (n b) (bor (<< n 8) b))
+            (lambda (n b) (bior (<< n 8) b))
             0 (sha256-bytes (str (time-ms)))))
 
       (define (show-options)

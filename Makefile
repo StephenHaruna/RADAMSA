@@ -47,6 +47,7 @@ clean:
 
 mrproper: clean
 	-rm -rf ol-*
+	-rm -rf owl
 
 test: .seal-of-quality
 
@@ -77,9 +78,10 @@ benchmark: bin/radamsa
 
 future:
 	test -d owl || git clone https://gitlab.com/owl-lisp/owl
-	cd owl && git pull
-	-cd owl && make build
-	test -x owl/bin/ol && make USR_BIN_OL=owl/bin/ol build_radamsa
+	#cd owl && git pull
+	-cd owl && make bin/ol
+	cp owl/bin/ol bin/ol
+	make
 
 uninstall:
 	rm $(DESTDIR)$(PREFIX)/bin/radamsa || echo "no radamsa"

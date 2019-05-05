@@ -11,6 +11,8 @@
 
    (begin
 
+      (define null '())
+      
       (define search-fuel 100000)
 
       (define search-stop-ip 8)
@@ -66,7 +68,7 @@
           (if (null? a) 
             (values rs al bl)
             (lets ((d rs (uncons rs #false)))
-              (if (eq? 1 (fxband d 1))
+              (if (eq? 1 (fxand d 1))
                 (loop rs (cdr a) (cons a al) bl)
                 (loop rs (cdr a) al (cons a bl)))))))
 

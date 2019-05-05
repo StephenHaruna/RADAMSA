@@ -123,11 +123,11 @@
                    (values nop-mutation rs ll meta 0))
                   ((equal? current-block-type #x00000006)
                    ;; Enhanced Packet Block
-                   (lets ((original-packet (list->byte-vector (extract-enhanced-packet current-block)))
+                   (lets ((original-packet (list->bytevector (extract-enhanced-packet current-block)))
                           (f rs ll meta d (mutation rs (list original-packet) meta))
                           (mutated-packets (map vector->list ll))
                           (mutated-blocks (map (lambda (p)
-                                                 (list->byte-vector (new-enhanced-block current-block p)))
+                                                 (list->bytevector (new-enhanced-block current-block p)))
                                                mutated-packets)))
                          (values instrumented-mutation rs (append mutated-blocks next-blocks) meta d)))
                   ((or (equal? current-block-type #x00000BAD)

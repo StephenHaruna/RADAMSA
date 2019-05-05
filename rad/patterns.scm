@@ -15,7 +15,9 @@
       string->patterns)
 
    (begin
-     
+
+      (define null '())
+           
       (define max-burst-mutations 16)
 
       (define (mutate-once rs ll mutator meta cont)

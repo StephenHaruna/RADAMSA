@@ -19,7 +19,9 @@
       string->outputs)    ;; str num → ll of output functions | #false
 
    (begin
-
+      
+      (define null '())
+      
       ;; output :: (ll' ++ (#(rs mutator meta))) fd → rs mutator meta (n-written | #f), handles port closing &/| flushing
       (define (output-to-fd ll fd)
          (lets 
@@ -51,7 +53,7 @@
                   (if (> len 65535)
                      ;; definitely too large for a single packet
                      (values rs muta meta 0)
-                     (lets ((buffer (list->byte-vector data)))
+                     (lets ((buffer (list->bytevector data)))
                         (cond
                            ((send-udp-packet sock ip port buffer)
                               (values rs muta meta 

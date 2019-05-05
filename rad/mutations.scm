@@ -22,6 +22,8 @@
 
    (begin
 
+      (define null '())
+      
       (define min-score 2)   ;; occurrence-priority = score*priority / total
       (define max-score 10)
 
@@ -34,7 +36,7 @@
       ;; random delta for brownian steppers
       (define (rand-delta rs)
          (lets ((digit rs (uncons rs #f)))
-            (if (eq? 0 (fxband digit 1))
+            (if (eq? 0 (fxand digit 1))
                (values rs +1)
                (values rs -1))))
 
@@ -54,7 +56,7 @@
                ((null? lst) (stderr-probe "BINARY: NO" #false))
                ((eq? (car lst) 0) (stderr-probe "BINARY: YES" #true))
                (else
-                  (if (eq? 0 (fxband 128 (car lst)))
+                  (if (eq? 0 (fxand 128 (car lst)))
                      (loop (cdr lst) (+ p 1))
                      (stderr-probe "BINARY: YES" #true))))))
 
@@ -67,11 +69,11 @@
                   (let ((val (ref bvec pos)))
                      (if (eq? pos edit-pos)
                         (if (eq? pos 0)
-                           (list->byte-vector (fn val out))
+                           (list->bytevector (fn val out))
                            (lets ((pos _ (fx- pos 1)))
                               (loop pos (fn val out))))
                         (if (eq? pos 0)
-                           (list->byte-vector (cons val out))
+                           (list->bytevector (cons val out))
                            (lets ((pos _ (fx- pos 1)))
                               (loop pos (cons val out))))))))))
 
@@ -132,7 +134,7 @@
       ;; todo: fixed scores, should be randomized
       (define (sed-num rs ll meta) ;; edit a number
          (lets
-            ((lst (vec->list (car ll)))
+            ((lst (vector->list (car ll)))
              (rs n lst (mutate-a-num rs lst 0))
              (bin? (binarish? lst))
              (lst (flush-bvecs lst (cdr ll))))
@@ -328,7 +330,7 @@
                    (rs end (rand-range rs (+ start 1) n))
                    (pre (map (λ (p) (ref (car ll) p)) (iota 0 1 start)))
                    (post (map (λ (p) (ref (car ll) p)) (iota end 1 (sizeb (car ll)))))
-                   (stut (list->byte-vector (map (λ (p) (ref (car ll) p)) (iota start 1 end))))
+                   (stut (list->bytevector (map (λ (p) (ref (car ll) p)) (iota start 1 end))))
                    (rs n (rand-log rs 10)) ; max 2^10 = 1024 stuts
                    (n (max 2 n))
                    (rs delta (rand-delta rs))
@@ -337,9 +339,9 @@
                         (λ (tl n) (cons stut tl))
                         (if (null? post)
                            (cdr ll)
-                           (cons (list->byte-vector post) (cdr ll)))
+                           (cons (list->bytevector post) (cdr ll)))
                         (iota 0 1 n)))
-                   (ll (if (null? pre) stuts (cons (list->byte-vector pre) stuts))))
+                   (ll (if (null? pre) stuts (cons (list->bytevector pre) stuts))))
                   (values sed-seq-repeat rs ll (inc meta 'seq-repeat) delta)))))
 
       (define (sed-seq-del rs ll meta)
@@ -350,7 +352,7 @@
             (values sed-seq-del rs
                (if (null? l)
                   (cdr ll)
-                  (cons (list->byte-vector l) (cdr ll)))
+                  (cons (list->bytevector l) (cdr ll)))
                (inc meta 'sed-seq-del)
                delta)))
 
@@ -481,7 +483,7 @@
                         ;; assuming we hit a 6-bit ascii char, make it unnecessarily wide
                         ;; which might confuse a length calculation
                         (if (eq? old (band old #b111111))
-                           (ilist #b11000000 (bor old #b10000000) tl)
+                           (ilist #b11000000 (bior old #b10000000) tl)
                            ;; fixme: find the next valid point (if any) and do this properly
                            (cons old tl))))
                   (cdr ll))))
@@ -989,7 +991,7 @@
                      
       (define (ascii-bad rs ll meta) ;; insert possible badness to ASCII data
          (lets
-            ((data (vec->list (car ll)))
+            ((data (vector->list (car ll)))
              (cs (string-lex data))
              (l (stringy-length cs)))
             (if l
