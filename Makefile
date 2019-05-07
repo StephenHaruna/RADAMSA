@@ -4,7 +4,7 @@ BINDIR=/bin
 CFLAGS?=-Wall -O2
 LDFLAGS?=
 OFLAGS=-O2
-OWLURL=https://gitlab.com/owl-lisp/owl/uploads/87ffa9dad2bc59fc0ac5efcd90db4c7c/ol-0.1.16.c.gz
+OWLURL=https://gitlab.com/owl-lisp/owl/uploads/0d0730b500976348d1e66b4a1756cdc3/ol-0.1.19.c.gz
 USR_BIN_OL?=/usr/bin/ol
 
 everything: bin/radamsa
