@@ -15,16 +15,19 @@
       (rad digest)
       (rad patterns)
       (rad mutations)
-      (rad shared))
+      (rad shared)
+      (rad pcapng))
 
    (export 
       radamsa)
 
    (begin
 
+      (define null '())
+      
       (define (string->count str)
          (cond
-            ((mem equal? '("inf" "infinity" "-1" "forever") str)
+            ((member str '("inf" "infinity" "-1" "forever"))
                'infinity)
             ((string->number str 10) =>
                (λ (n) 
@@ -33,7 +36,7 @@
                      #false)))
             (else #f)))
 
-      (define version-str "Radamsa 0.6a")
+      (define version-str "Radamsa 0.6")
 
       (define usage-text "Usage: radamsa [arguments] [file ...]")
 
@@ -42,9 +45,9 @@
 "Radamsa is a general purpose fuzzer. It modifies given sample data 
 in ways, which might expose errors in programs intended to process 
 the data. For more information, read the fine manual page, or visit
-visit https://github.com/aoh/radamsa.
+https://gitlab.com/akihe/radamsa.
 
-Radamsa was written by Aki Helin at OUSPG.")
+Radamsa was written by Aki Helin, initially at OUSPG.")
 
       (define (string->natural str)
          (let ((i (string->integer str)))
@@ -52,13 +55,15 @@ Radamsa was written by Aki Helin at OUSPG.")
                i
                #false)))
 
+      
+               
       (define command-line-rules
          (cl-rules
             `((help "-h" "--help" comment "show this thing")
               (about "-a" "--about" comment "what is this thing?")
               (version "-V" "--version" comment "show program version")
               (output-pattern "-o" "--output" has-arg default "-" cook ,(λ (x) x)
-                  comment "output pattern, e.g. out.bin /tmp/fuzz-%n.%s, -, :80 or 127.0.0.1:80")
+                  comment "output pattern, e.g. out.bin /tmp/fuzz-%n.%s, -, :80 or 127.0.0.1:80 or 127.0.0.1:123/udp")
               (count "-n" "--count" cook ,string->count
                   default "1" comment "how many outputs to generate (number or inf)")
               (seed "-s" "--seed" cook ,string->natural comment "random seed (number, default random)")
@@ -77,18 +82,22 @@ Radamsa was written by Aki Helin at OUSPG.")
                   comment "include files in subdirectories")
               (offset "-S" "--seek" cook ,string->integer
                   comment "start from given testcase")
+              (truncate "-T" "--truncate" cook ,string->integer
+                  comment "take only first n bytes of each output (mainly intended for UDP)")
               (delay "-d" "--delay" cook ,string->natural
                   comment "sleep for n milliseconds between outputs")
               (list "-l" "--list" comment "list mutations, patterns and generators")
               (csums "-C" "--checksums" has-arg default "10000" cook ,string->natural
                     comment "maximum number of checksums in uniqueness filter (0 disables)")
+              (hash "-H" "--hash" cook ,string->hash default "stream"
+                    comment "hash algorithm for uniqueness checks (stream or sha256)")
               (verbose "-v" "--verbose" comment "show progress during generation"))))
 
       ;; () → string
       (define (urandom-seed)
          (let ((fd (open-input-file "/dev/urandom"))) ;; #false if not there
             (if fd
-               (let ((data (get-block fd 10)))
+               (let ((data (read-bytevector 10 fd)))
                   (close-port fd)
                   (if (vector? data)
                      (vec-fold (λ (n d) (+ d (<< n 8))) 0 data)
@@ -98,7 +107,7 @@ Radamsa was written by Aki Helin at OUSPG.")
       ;; () → string (decimal number)
       (define (time-seed)
          (fold 
-            (lambda (n b) (bor (<< n 8) b))
+            (lambda (n b) (bior (<< n 8) b))
             0 (sha256-bytes (str (time-ms)))))
 
       (define (show-options)
@@ -118,7 +127,7 @@ Radamsa was written by Aki Helin at OUSPG.")
          (define (verb n u)
             (if (or (< n 1024) (null? (cdr u)))
                (render n (render (car u) null))
-               (verb (div n 1024) (cdr u))))
+               (verb (quotient n 1024) (cdr u))))
          (list->string
             (verb n '("b" "K" "M" "T" "P"))))
 
@@ -217,7 +226,8 @@ Radamsa was written by Aki Helin at OUSPG.")
                   (else (loop (cdr cs) (cons (car cs) out)))))))
 
       (define K (λ (a b) a))
-      
+     
+      ;; todo: separate generation steps properly
       (define (run-radamsa dict paths)
          (lets/cc ret
             ((fail (λ (why) (print why) (ret 1)))
@@ -229,9 +239,13 @@ Radamsa was written by Aki Helin at OUSPG.")
                   fail))
              (n (getf dict 'count))
              (end (if (number? n) (+ n (get dict 'offset 0)) n))
-             (mutas (getf dict 'mutations))
+             (mutas (if (pcapng-input? dict)
+	               (pcapng-instrument-mutations (getf dict 'mutations))
+                       (getf dict 'mutations)))
+             (hash (getf dict 'hash))
              (checksummer 
-                (if (eq? 0 (getf dict 'csums)) dummy-checksummer checksummer))
+                ((if (eq? 0 (getf dict 'csums)) dummy-checksummer checksummer)
+                   hash))
              (rs muta (mutators->mutator rs mutas))
              (sleeper
               (let ((n (getf dict 'delay)))
@@ -254,34 +268,29 @@ Radamsa was written by Aki Helin at OUSPG.")
                 ((= left 0)
                    (record-meta 'close)
                    0)
-                ((eq? offset 1)
-                  (lets/cc ret
+                (else
+                  (lets
                      ((rs ll meta (gen rs))
                       (meta (put meta 'nth p))
                       (out-ll (pat rs ll muta meta))
                       (out-lst cs csum (checksummer cs out-ll)))
                      (if csum 
-                        (lets
-                           ((out fd meta (out meta))
-                            (rs muta generation-meta n-written 
-                              (output out-lst fd))
-                            (meta 
-                               (-> (ff-union meta generation-meta K)
-                                  (put 'length n-written)
-                                  (put 'checksum csum))))
-                           (record-meta meta)
-                           (sleeper)
-                           (loop rs muta pat out 1 (+ p 1) cs (- left 1)))
-                        (lets ((rs muta meta (dummy-output out-lst)))
-                           ;; skip output with checksum match
-                           (loop rs muta pat out 1 p cs left)))))
-                (else
-                  ;; fixme, checksums not in use while fast-forwarding. 
-                  (lets 
-                    ((rs ll meta (gen rs))
-                     (meta (put meta 'nth p))
-                     (rs muta meta (dummy-output (pat rs ll muta meta))))
-                    (loop rs muta pat out (- offset 1) (+ p 1) cs left)))))))
+                        (if (eq? offset 1)
+                           (lets
+                              ((out fd meta (out meta))
+                               (rs muta generation-meta n-written 
+                                 (output out-lst fd))
+                               (meta 
+                                  (-> (ff-union meta generation-meta K)
+                                     (put 'length n-written)
+                                     (put 'checksum csum))))
+                              (record-meta meta)
+                              (sleeper)
+                              (loop rs muta pat out 1 (+ p 1) cs (- left 1)))
+                           (lets ((rs muta meta (dummy-output out-lst)))
+                              (loop rs muta pat out (- offset 1) (+ p 1) cs left)))
+                        ;; checksum match - drop duplicate
+                        (loop rs muta pat out offset p cs left))))))))
   
       ;; dict args → rval
       (define (start-radamsa dict paths)

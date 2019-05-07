@@ -1,6 +1,6 @@
 # A Crash Course to Radamsa
 
-Radamsa is a test case generator for robustness testing, a.k.a. a fuzzer. It is typically used to test how well a program can withstand malformed and potentially malicious inputs. It works by reading sample files of valid data and generating interestringly different outputs from them. The main selling points of radamsa are that it has already found a slew of bugs in programs that actually matter, it is easily scriptable and easy to get up and running.
+Radamsa is a test case generator for robustness testing, a.k.a. a fuzzer. It is typically used to test how well a program can withstand malformed and potentially malicious inputs. It works by reading sample files of valid data and generating interestringly different outputs from them. The main selling points of radamsa are that it has already found a slew of bugs in programs that actually matter, it is easily scriptable and, easy to get up and running.
 
 ## Nutshell:
 
@@ -36,10 +36,11 @@ Software requirements for building from sources:
  * gcc / clang
  * make
  * git
+ * wget
 
 ## Building Radamsa
 ```
- $ git clone https://github.com/aoh/radamsa.git
+ $ git clone https://gitlab.com/akihe/radamsa.git
  $ cd radamsa
  $ make
  $ sudo make install # optional, you can also just grab bin/radamsa
@@ -197,9 +198,9 @@ Tools which are intended to improve security are usually complementary and shoul
 
 ## Some Known Results
 
-A robustness testing tool is obviously only good only if it really can find non-trivial issues in real-world programs. Being a University-based group, we have tried to formulate some more scientific approaches to define what a 'good fuzzer' is, but real users are more likely to be interested in whether a tool has found something useful. We do not have anyone at OUSPG running tests or even developing Radamsa full-time, but we obviously do make occasional test-runs, both to assess the usefulness of the tool, and to help improve robustness of the target programs. For the test-runs we try to select programs that are mature, useful to us, widely used, preferably open source and/or tend to process data from outside sources.
+A robustness testing tool is obviously only good only if it really can find non-trivial issues in real-world programs. Being a University-based group, we have tried to formulate some more scientific approaches to define what a 'good fuzzer' is, but real users are more likely to be interested in whether a tool has found something useful. We do not have anyone at OUSPG running tests or even developing Radamsa full-time, but we obviously do make occasional test-runs, both to assess the usefulness of the tool, and to help improve robustness of the target programs. For the test-runs we try to select programs that are mature, useful to us, widely used, and, preferably, open source and/or tend to process data from outside sources.
 
-The list below has some CVE:s we know of that have been found by using Radamsa. Some of the results are from our own test runs, and some have been kindly provided by CERT-FI from their tests and other users. As usual, please note that CVE:s should be read as 'product X is now more robust (against Y)'.
+The list below has some CVEs we know of that have been found by using Radamsa. Some of the results are from our own test runs, and some have been kindly provided by CERT-FI from their tests and other users. As usual, please note that CVE:s should be read as 'product X is now more robust (against Y)'.
 
 CVE           | program    | credit
 --------------|------------|-----------
@@ -295,6 +296,7 @@ CVE-2016-9562 | SAP NetWeaver | @vah_13 (ERPScan)
 CVE-2017-5371 | SAP ASE OData | @vah_13 (ERPScan)
 CVE-2017-9843 | SAP NETWEAVER | @vah_13 (ERPScan)
 CVE-2017-9845 | SAP NETWEAVER | @vah_13 (ERPScan)
+[CVE-2018-0101](https://www.nccgroup.trust/globalassets/newsroom/uk/events/offensivecon2018-the-return-of-robin-hood-vs-cisco-asa.pdf) | Cisco ASA WebVPN/AnyConnect | @saidelike (NCC Group)
 
 We would like to thank the Chromium project and Mozilla for analyzing, fixing and reporting further many of the above mentioned issues, CERT-FI for feedback and disclosure handling, and other users, projects and vendors who have responsibly taken care of uncovered bugs.
 
@@ -331,7 +333,7 @@ Q: Radamsa takes several GB of memory to compile!1
 A: This is most likely due to an issue with your C compiler. Use prebuilt images or try the quick build instructions in this page.
 
 Q: Radamsa does not compile using the instructions in this page!  
-A: Please file an issue at https://github.com/aoh/radamsa/issues if you don't see a similar one already filed, send email (aohelin@gmail.com) or IRC (#radamsa on freenode).
+A: Please file an issue at https://gitlab.com/akihe/radamsa/issues/new if you don't see a similar one already filed, send email (aohelin@gmail.com) or IRC (#radamsa on freenode).
 
 Q: I used fuzzer X and found much more bugs from program Y than Radamsa did.  
 A: Cool. Let me know about it (aohelin@gmail.com) and I'll try to hack something X-ish to radamsa if it's general purpose enough. It'd also be useful to get some samples which you used to check how well radamsa does, because it might be overfitting some heuristic.
@@ -365,7 +367,7 @@ A: Yes.
 
 ## Warnings
 
-Use of data generated by radamsa, especially when targeting buggy programs running with high privileges, can result in arbitrarily bad things to happen. A typical unexpected issue is caused by a file manager, automatic indexer or antivirus scanner trying to do something to fuzzed data before they are being tested intentionally. We have seen spontaneous reboots, system hangs, file system corruption, loss of data and other nastiness. When in doubt, use a disposable system, throwaway profile, chroot jail, sandbox, separate user account or an emulator.
+Use of data generated by radamsa, especially when targeting buggy programs running with high privileges, can result in arbitrarily bad things to happen. A typical unexpected issue is caused by a file manager, automatic indexer or antivirus scanner trying to do something to fuzzed data before they are being tested intentionally. We have seen spontaneous reboots, system hangs, file system corruption, loss of data, and other nastiness. When in doubt, use a disposable system, throwaway profile, chroot jail, sandbox, separate user account, or an emulator.
 
 Not safe when used as prescribed.
 

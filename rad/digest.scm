@@ -4,16 +4,22 @@
    
    (import
       (owl base)
-      (owl lazy))
+      (owl lazy)
+      (owl codec)
+      (owl digest)) ;; sha256-raw ll → (fixnum ...)
    
    (export
+      string->hash    ;; used for command line argument
       empty-digests
+      bytes->trits
       dget            ;; digests digest -> bool
       dput            ;; digests digest -> digests
       digest)
    
    (begin
 
+      (define null '())
+      
       (define (empty-digests max)
          (tuple #empty max 0))
          
@@ -51,17 +57,17 @@
                ((a bs (uncons bs 0))
                 (b bs (uncons bs a))
                 (c bs (uncons bs b))
-                (_ a (fx<< a 16))
-                (_ b (fx<< b 8)))
+                (a (<< a 16))
+                (b (<< b 8)))
                (pair
-                  (fxbor (fxbor a b) c)
+                  (fxior (fxior a b) c)
                   (bs->trits bs)))))
 
       (define (trit a b c)
          (lets
-            ((_ a (fx<< a 16))
-             (_ b (fx<< b 8)))
-            (fxbor (fxbor a b) c)))
+            ((a (<< a 16))
+             (b (<< b 8)))
+            (fxior (fxior a b) c)))
              
       (define (get-trit ll)
          (cond
@@ -84,10 +90,10 @@
             (else (get-trit (ll)))))
 
       (define (pollinate a b)
-         (lets ((ah a (fx<< a 3))
-                (bh b (fx<< b 3))
-                (a (fxbor a bh))
-                (b (fxbor b ah)))
+         (lets ((ah a (fx>> a 21))
+                (bh b (fx>> b 21))
+                (a (fxior a bh))
+                (b (fxior b ah)))
             (values a b)))
                
       (define (digest ll)
@@ -96,41 +102,53 @@
                (if (null? ll)
                   ;(list len fst a sum par lag)
                   (list 
-                     (band #xffffff (bor (<< sum 10) len))
-                     (if (= fst a) fst (fxbxor fst a))
+                     (band #xffffff (bior (<< sum 10) len))
+                     (if (= fst a) fst (fxxor fst a))
                      par 
                      lag)
                   (lets ((b n ll (get-trit ll))
                          (sum _ (fx+ sum b))
                          (len _ (fx+ len n))
-                         (par (fxbxor par b)))
-                        (if (eq? (fxband len #b1) #b1)
+                         (par (fxxor par b)))
+                        (if (eq? (fxand len #b1) #b1)
                            (lets ((par lag (pollinate par lag)))
                               (loop ll b sum len par lag))
                            (lets ((sum par (pollinate sum par)))
                               (loop ll b sum len par lag))))))))
 
-   (define (inc lst)
-      (cond
-         ((null? lst)
-            (list 0))
-         ((not (pair? lst))
-            (inc (lst)))
-         ((eq? (car lst) 255)
-            (pair 0 (inc (cdr lst))))
-         (else
-            (pair (+ (car lst) 1) (cdr lst)))))
+   (define (hash-stream ll)
+      (let ((res (digest ll)))
+         (values 
+            res                   ;; correct 
+            (str res)))) ;; →  trits->hex
 
-   '(let loop ((lst null) (ds empty-digests) (n 0) (colls 0))
-      (let ((dig (digest lst)))
-         (if (eq? (band n #xfff) 0)
-            (print colls "/" n " collisions, dig " lst " = " dig))
+   (define (bytes->trits lst)
+      (let loop ((lst lst) (trit 0) (n 0))
          (cond
-            ((dget ds dig)
-               (print "Collision: " lst " -> " dig ", collisions " colls "/" n)
-               (loop (inc lst) ds (+ n 1) (+ colls 1)))
+            ((null? lst)
+               (if (eq? n 0)
+                  null
+                  (list trit)))
+            ((eq? n 3)
+               (cons trit (loop lst 0 0)))
             (else
-               (loop (inc lst) (dput ds dig) (+ n 1) colls)))))
+               (loop (cdr lst)
+                  (bior (<< trit 8) (car lst))
+                  (+ n 1))))))
+               
+   (define (hash-sha256 lst)
+      (let ((bs (sha256-bytes lst)))
+         (values 
+            (bytes->trits bs)
+            (hex-encode-list bs))))
+      
+   (define (string->hash s)
+      (cond
+         ((string-ci=? s "stream") hash-stream)
+         ((string-ci=? s "sha256") hash-sha256)
+         ((string-ci=? s "sha") hash-sha256)
+         (else #f)))
+   
       
 ))
          

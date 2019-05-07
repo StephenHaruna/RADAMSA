@@ -29,6 +29,8 @@
 
    (begin
 
+      (define null '())
+      
       (define avg-block-size 2048)        ; average block size when streaming sample data
       (define min-block-size  256)        ; minimum preferred mutation block size
       (define initial-ip 24)              ; initial max 1/n for basic patterns
@@ -100,11 +102,11 @@
       (define (flush-bvecs byte-list tail)
          (let loop ((len (length byte-list)) (lst byte-list))
             (if (< len avg-block-size)
-                (cons (list->byte-vector lst) tail)
+                (cons (list->bytevector lst) tail)
                 (let
                   ((hd (take lst avg-block-size))
                    (tl (drop lst avg-block-size)))
-                  (cons (list->byte-vector hd)
+                  (cons (list->bytevector hd)
                      (loop (- len avg-block-size) tl))))))
 
       (define exit-write-error 1)

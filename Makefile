@@ -4,9 +4,8 @@ BINDIR=/bin
 CFLAGS?=-Wall -O2
 LDFLAGS?=
 OFLAGS=-O2
-OWL=ol-0.1.13
-OWLURL=https://github.com/aoh/owl-lisp/files/449350
-USR_BIN_OL=/usr/bin/ol
+OWLURL=https://gitlab.com/owl-lisp/owl/uploads/0d0730b500976348d1e66b4a1756cdc3/ol-0.1.19.c.gz
+USR_BIN_OL?=/usr/bin/ol
 
 everything: bin/radamsa
 
@@ -27,13 +26,13 @@ radamsa.c: rad/*.scm
 radamsa.fasl: rad/*.scm bin/ol
 	bin/ol -o radamsa.fasl rad/main.scm
 
-$(OWL).c:
-	test -f $(OWL).c.gz || wget $(OWLURL)/$(OWL).c.gz
-	gzip -d < $(OWL).c.gz > $(OWL).c
+ol.c:
+	test -f ol.c.gz || wget -O ol.c.gz $(OWLURL) || curl -L0 -l ol.c.gz $(OWLURL)
+	gzip -d < ol.c.gz > ol.c
 
-bin/ol: $(OWL).c
+bin/ol: ol.c
 	mkdir -p bin
-	cc -O2 -o bin/ol $(OWL).c
+	cc -O2 -o bin/ol ol.c
 
 install: bin/radamsa
 	-mkdir -p $(DESTDIR)$(PREFIX)/bin
@@ -42,10 +41,18 @@ install: bin/radamsa
 	cat doc/radamsa.1 | gzip -9 > $(DESTDIR)$(PREFIX)/share/man/man1/radamsa.1.gz
 
 clean:
+	-rm -rf owl-lisp
 	-rm radamsa.c bin/radamsa .seal-of-quality
-	-rm bin/ol $(OWL).c.gz $(OWL).c
+	-rm bin/ol ol.c.gz ol.c
+
+mrproper: clean
+	-rm -rf ol-*
+	-rm -rf owl
 
 test: .seal-of-quality
+
+fasltest: radamsa.fasl
+	sh tests/run owl-lisp/bin/vm radamsa.fasl
 
 .seal-of-quality: bin/radamsa
 	-mkdir -p tmp
@@ -69,8 +76,15 @@ bytecode: bin/ol
 benchmark: bin/radamsa
 	tests/benchmark bin/radamsa
 
+future:
+	test -d owl || git clone https://gitlab.com/owl-lisp/owl
+	#cd owl && git pull
+	-cd owl && make bin/ol
+	cp owl/bin/ol bin/ol
+	make
+
 uninstall:
 	rm $(DESTDIR)$(PREFIX)/bin/radamsa || echo "no radamsa"
 	rm $(DESTDIR)$(PREFIX)/share/man/man1/radamsa.1.gz || echo "no manpage"
 
-.PHONY: todo you install clean test bytecode uninstall get-owl standalone
+.PHONY: todo you install clean mrproper test bytecode uninstall get-owl standalone

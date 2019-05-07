@@ -22,6 +22,8 @@
 
    (begin
 
+      (define null '())
+      
       (define min-score 2)   ;; occurrence-priority = score*priority / total
       (define max-score 10)
 
@@ -34,7 +36,7 @@
       ;; random delta for brownian steppers
       (define (rand-delta rs)
          (lets ((digit rs (uncons rs #f)))
-            (if (eq? 0 (fxband digit 1))
+            (if (eq? 0 (fxand digit 1))
                (values rs +1)
                (values rs -1))))
 
@@ -54,7 +56,7 @@
                ((null? lst) (stderr-probe "BINARY: NO" #false))
                ((eq? (car lst) 0) (stderr-probe "BINARY: YES" #true))
                (else
-                  (if (eq? 0 (fxband 128 (car lst)))
+                  (if (eq? 0 (fxand 128 (car lst)))
                      (loop (cdr lst) (+ p 1))
                      (stderr-probe "BINARY: YES" #true))))))
 
@@ -64,14 +66,14 @@
             (if (eq? len 0)
                bvec
                (let loop ((pos (- len 1)) (out null))
-                  (let ((val (refb bvec pos)))
+                  (let ((val (ref bvec pos)))
                      (if (eq? pos edit-pos)
                         (if (eq? pos 0)
-                           (list->byte-vector (fn val out))
+                           (list->bytevector (fn val out))
                            (lets ((pos _ (fx- pos 1)))
                               (loop pos (fn val out))))
                         (if (eq? pos 0)
-                           (list->byte-vector (cons val out))
+                           (list->bytevector (cons val out))
                            (lets ((pos _ (fx- pos 1)))
                               (loop pos (cons val out))))))))))
 
@@ -132,7 +134,7 @@
       ;; todo: fixed scores, should be randomized
       (define (sed-num rs ll meta) ;; edit a number
          (lets
-            ((lst (vec->list (car ll)))
+            ((lst (vector->list (car ll)))
              (rs n lst (mutate-a-num rs lst 0))
              (bin? (binarish? lst))
              (lst (flush-bvecs lst (cdr ll))))
@@ -271,10 +273,10 @@
       (define (split lst)
          (define (walk t h out)
             (if (null? h)
-               (values (╯°□°╯ out) t)
+               (values (reverse out) t)
                (let ((h (cdr h)))
                   (if (null? h)
-                     (values (╯°□°╯ out) t)
+                     (values (reverse out) t)
                      (walk (cdr t) (cdr h) (cons (car t) out))))))
          (walk lst lst null))
 
@@ -326,9 +328,9 @@
                (lets
                   ((rs start (rand-range rs 0 (- n 1)))
                    (rs end (rand-range rs (+ start 1) n))
-                   (pre (map (λ (p) (refb (car ll) p)) (iota 0 1 start)))
-                   (post (map (λ (p) (refb (car ll) p)) (iota end 1 (sizeb (car ll)))))
-                   (stut (list->byte-vector (map (λ (p) (refb (car ll) p)) (iota start 1 end))))
+                   (pre (map (λ (p) (ref (car ll) p)) (iota 0 1 start)))
+                   (post (map (λ (p) (ref (car ll) p)) (iota end 1 (sizeb (car ll)))))
+                   (stut (list->bytevector (map (λ (p) (ref (car ll) p)) (iota start 1 end))))
                    (rs n (rand-log rs 10)) ; max 2^10 = 1024 stuts
                    (n (max 2 n))
                    (rs delta (rand-delta rs))
@@ -337,9 +339,9 @@
                         (λ (tl n) (cons stut tl))
                         (if (null? post)
                            (cdr ll)
-                           (cons (list->byte-vector post) (cdr ll)))
+                           (cons (list->bytevector post) (cdr ll)))
                         (iota 0 1 n)))
-                   (ll (if (null? pre) stuts (cons (list->byte-vector pre) stuts))))
+                   (ll (if (null? pre) stuts (cons (list->bytevector pre) stuts))))
                   (values sed-seq-repeat rs ll (inc meta 'seq-repeat) delta)))))
 
       (define (sed-seq-del rs ll meta)
@@ -350,7 +352,7 @@
             (values sed-seq-del rs
                (if (null? l)
                   (cdr ll)
-                  (cons (list->byte-vector l) (cdr ll)))
+                  (cons (list->bytevector l) (cdr ll)))
                (inc meta 'sed-seq-del)
                delta)))
 
@@ -363,11 +365,11 @@
          (let loop ((lst (vector->list bvec)) (buff null) (out null))
             (if (null? lst)
                (if (null? buff)
-                  (╯°□°╯ out)
-                  (╯°□°╯ (cons (╯°□°╯ buff) out)))
+                  (reverse out)
+                  (reverse (cons (reverse buff) out)))
                (lets ((hd lst lst))
                   (if (eq? hd 10) ;; newline
-                     (loop lst null (cons (╯°□°╯ (cons 10 buff)) out))
+                     (loop lst null (cons (reverse (cons 10 buff)) out))
                      (loop lst (cons hd buff) out))))))
 
       ;; #u8[byte ...] → ((byte ... 10) ...) | #false, if this doesn't look like line-based text data
@@ -427,6 +429,7 @@
             (append
                (list ;; some manual ones
                   (list #xe2 #x80 #xae)  ;; U+202E Right to Left Override
+                  (list #xe2 #x80 #xad)  ;; U+202D Left to Right Override
                   (list #xe1 #xa0 #x8e)  ;; U+180E Mongolian Vowel Separator
                   (list #xe2 #x81 #xa0)  ;; U+2060 Word Joiner
                   (list #xef #xbb #xbe)  ;; U+FEFE reserved
@@ -480,7 +483,7 @@
                         ;; assuming we hit a 6-bit ascii char, make it unnecessarily wide
                         ;; which might confuse a length calculation
                         (if (eq? old (band old #b111111))
-                           (ilist #b11000000 (bor old #b10000000) tl)
+                           (ilist #b11000000 (bior old #b10000000) tl)
                            ;; fixme: find the next valid point (if any) and do this properly
                            (cons old tl))))
                   (cdr ll))))
@@ -514,12 +517,12 @@
       ;; → lst tail-lst = did successfully parse up to close. ready node is lst, tail is following data
       (define (grow lst close rout)
          (if (null? lst)
-            (values (╯°□°╯ rout) #false) ;; out of data, didn't find close. return partial parse.
+            (values (reverse rout) #false) ;; out of data, didn't find close. return partial parse.
             (lets ((hd lst lst))
                (cond
                   ((eq? hd close)
                      ;; match complete, return with rest of list
-                     (values (╯°□°╯ (cons close rout)) lst))
+                     (values (reverse (cons close rout)) lst))
                   ((get usual-delims hd #false) =>
                      (λ (next-close)
                         (lets ((this lst (grow lst next-close null)))
@@ -527,7 +530,7 @@
                               (grow lst close (cons (cons hd this) rout))
                               ;; we ran out of data. this is a list of partial parses (having the data of
                               ;; lst after hd in some form) which we want to preserve as tail
-                              (values (append (╯°□°╯ rout) (cons hd this)) #false)))))
+                              (values (append (reverse rout) (cons hd this)) #false)))))
                   (else ;; add one byte to this node
                      (grow lst close (cons hd rout)))))))
 
@@ -558,7 +561,7 @@
             (if (null? subs)
                (values rs #false)
                (lets ((rs n (rand rs (length subs))))
-                  (values rs (lref subs n))))))
+                  (values rs (list-ref subs n))))))
 
       ;; replace the node (sub . tail) with (op (sub . tail))
       (define (edit-sublist lst sub op)
@@ -589,7 +592,7 @@
             (abort)
             (let loop ((lst lst) (rout null))
                (if (null? lst)
-                  (╯°□°╯ rout)
+                  (reverse rout)
                   (lets ((closep (get usual-delims (car lst) #false)))
                      (if closep
                         (lets
@@ -597,7 +600,7 @@
                             (this lst (grow (cdr lst) closep null)))
                            (if lst
                               (loop lst (cons (cons hd this) rout))
-                              (append (╯°□°╯ rout) (cons hd this))))
+                              (append (reverse rout) (cons hd this))))
                         (loop (cdr lst) (cons (car lst) rout))))))))
 
       (define (flatten node tl)
@@ -909,7 +912,7 @@
 
       (define (random-silly rs)
          (lets ((rs p (rand rs n-sillies)))
-            (values rs (lref silly-strings p))))
+            (values rs (list-ref silly-strings p))))
 
       (define (random-badness rs)
          (lets ((rs n (rand rs 20)))
@@ -974,7 +977,7 @@
 
       (define (string-mutate rs cs l)
          (lets ((rs p (rand rs l)))
-            (tuple-case (lref cs p)
+            (tuple-case (list-ref cs p)
                ((text bs)
                   (lets ((rs bs (mutate-text-data rs bs)))
                      (values rs (lset cs p (tuple 'text bs)))))
@@ -988,7 +991,7 @@
                      
       (define (ascii-bad rs ll meta) ;; insert possible badness to ASCII data
          (lets
-            ((data (vec->list (car ll)))
+            ((data (vector->list (car ll)))
              (cs (string-lex data))
              (l (stringy-length cs)))
             (if l
@@ -1109,9 +1112,6 @@
       (define (weighted-permutation rs pris)
          ;; show a sorted probability distribution 
          (stderr-probe
-             ;(lets ((probs (sort car> (map (λ (x) (cons (* (ref x 1) (ref x 2)) (ref x 4))) pris)))
-             ;       (all (fold + 0 (map car probs))))
-             ;      (print*-to stderr (list "probs: " (map (λ (node) (cons (floor (/ (* (car node) 100) all)) (cdr node))) probs))))
             (sort car> (map (λ (x) (cons (ref x 1) (ref x 4))) pris))
             (lets    
                ((rs ppris ; ((x . (pri . fn)) ...)
@@ -1174,7 +1174,7 @@
             ((ps (map c/=/ (c/,/ str))) ; ((name [priority-str]) ..)
              (ps (map selection->priority ps))
              (fs (map priority->fuzzer ps)))
-            (if (all self fs) 
+            (if (every self fs) 
                fs
                #false)))
 
