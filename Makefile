@@ -83,6 +83,28 @@ future:
 	cp owl/bin/ol bin/ol
 	make
 
+autofuzz: bin/radamsa
+	echo '<html> <foo bar=baz>zeb</foo> <foo babar=lol></html>' > tmp/test.xmlish
+	bin/radamsa -v -o tmp/out-%n -n 200 rad/* bin/* tmp/test.xmlish
+	bin/radamsa -v -o tmp/out-2-%n -n 200 tmp/out-* tmp/test.xmlish
+	bin/radamsa -v -o tmp/out-3-%n -n 200 tmp/out-2-* tmp/test.xmlish
+	# fuzz a million outputs 
+	bin/radamsa --seed 42 --meta million.meta -n 1000000
+	echo autofuzz complete
+
+
+## Library mode test
+
+c/libradamsa.c: c/lib.c rad/*.scm
+	# future -> use dev owl which has peek-byte
+	test -d owl || make future
+	bin/ol --bare -o c/libradamsa.c rad/libradamsa.scm
+	sed -i 's/int main/int secondary/' c/libradamsa.c
+	cat c/lib.c >> c/libradamsa.c
+
+bin/libradamsa: c/libradamsa.c
+	cc -o bin/libradamsa c/libradamsa.c
+
 uninstall:
 	rm $(DESTDIR)$(PREFIX)/bin/radamsa || echo "no radamsa"
 	rm $(DESTDIR)$(PREFIX)/share/man/man1/radamsa.1.gz || echo "no manpage"
