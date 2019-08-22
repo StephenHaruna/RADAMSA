@@ -2,48 +2,92 @@
 (import 
    (owl base)
    (only (owl sys) peek-byte)
-   (only (rad mutations) string->mutators default-mutations))
+   (only (rad main) urandom-seed)
+   (only (rad mutations) 
+      mutators->mutator
+      string->mutators default-mutations))
 
-;; dummy for lisp only test
-; (define (peek-byte ptr) 42)
-
-(define (read-memory ptr len)
+;; todo: add a proper read primop
+(define (read-memory-simple ptr len)
    (if (eq? len 0)
       #null
       (cons (peek-byte ptr)
-         (read-memory (+ ptr 1) (- len 1)))))
+         (read-memory-simple (+ ptr 1) (- len 1)))))
 
-(define (fuzz state)
+(define (read-memory source len)
+   (if (string? source)
+      (take (string->bytes source) len)
+      (read-memory-simple source len)))
+
+; (define (read-memory ptr len) (string->bytes "Hello <foo arg=42>"))
+   
+(define mutas 
+   (lets ((rs mutas 
+            (mutators->mutator 
+               (seed->rands 42)
+               (string->mutators default-mutations))))
+      mutas))
+
+(define (mutate-simple mutator byte-list seed)
+   (lets
+      ((mutator rs chunks meta
+         (mutator
+            (seed->rands seed)
+            (list (list->bytevector byte-list))
+            #empty)))
+      (values
+         mutator
+         (foldr
+            (λ (bvec out)
+               (append (bytevector->list bvec) out))
+            '()
+            chunks))))
+            
+(define (fuzz muta)
    (λ (tuple-from-c)
       (lets ((ptr len max seed tuple-from-c))
          (if (= len 0)
-            (list (band seed #xff))
+            (values
+               (list (band seed #xff))
+               (fuzz muta))
             (lets
                ((rs (seed->rands seed))
-                (input (read-memory ptr len))
-                (rs modify-pos (rand rs len))
-                (rs modify-delta (rand rs 256))
-                (output 
-                  (led input modify-pos
-                     (λ (x) (band #xff (+ x modify-delta))))))
+                (input 
+                   (read-memory ptr len)
+                   )
+                (muta output
+                  (mutate-simple muta input seed)))
                (values
                   output
-                  (fuzz state)))))))
+                  (fuzz muta)))))))
 
 (define (try entry)
-   (lets 
-      ((return state 
-         (entry 
-            (tuple 
-               31337
-               8 
-               8
-               42))))
-      (print return)))
+   (let loop ((entry entry)
+              (samples 
+                 '("Hello <b>HAL</b> 9000" 
+                   "Hello, world!" 
+                   ))
+              (n 1))
+      (if (= n 100)
+         12
+         (lets 
+            ((return entry
+               (entry 
+                  (tuple 
+                     (car samples)
+                     100
+                     100
+                     n))))
+            (print n " -> " (list->string return))
+            (loop entry (append (cdr samples) (list (car samples))) (+ n 1))))))
 
-;(try (fuzz 0))
+;; load-time test
+; (try (fuzz mutas))
 
-(fuzz 'not-used-atm)
+;; fasl test
+; (λ (args) (try (fuzz mutas)))
 
+;; C test
+(fuzz mutas)
 
 

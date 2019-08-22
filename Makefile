@@ -103,7 +103,7 @@ c/libradamsa.c: c/lib.c rad/*.scm
 	cat c/lib.c >> c/libradamsa.c
 
 bin/libradamsa: c/libradamsa.c
-	cc -o bin/libradamsa c/libradamsa.c
+	gcc -fsanitize=address -O2 -o bin/libradamsa c/libradamsa.c
 
 uninstall:
 	rm $(DESTDIR)$(PREFIX)/bin/radamsa || echo "no radamsa"
