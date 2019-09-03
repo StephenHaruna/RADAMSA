@@ -98,12 +98,15 @@ autofuzz: bin/radamsa
 c/libradamsa.c: c/lib.c rad/*.scm
 	# future -> use dev owl which has peek-byte
 	test -d owl || make future
-	bin/ol --bare -o c/libradamsa.c rad/libradamsa.scm
+	bin/ol --mode library -o c/libradamsa.c rad/libradamsa.scm
 	sed -i 's/int main/int secondary/' c/libradamsa.c
 	cat c/lib.c >> c/libradamsa.c
 
 bin/libradamsa: c/libradamsa.c
 	gcc -fsanitize=address -O2 -o bin/libradamsa c/libradamsa.c
+
+libradamsa-test: bin/libradamsa
+	bin/libradamsa | grep "library test passed"
 
 uninstall:
 	rm $(DESTDIR)$(PREFIX)/bin/radamsa || echo "no radamsa"

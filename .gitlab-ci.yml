@@ -8,7 +8,7 @@ build:
   except:
    - schedules
   script: 
-   - make test
+   - make test && make libradamsa-test
 
 build:on-schedule:
    stage: build

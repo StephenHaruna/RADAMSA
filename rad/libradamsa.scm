@@ -7,6 +7,9 @@
       mutators->mutator
       string->mutators default-mutations))
 
+(import 
+   (only (owl syscall) library-exit)) ;; library call return/resume
+
 ;; todo: add a proper read primop
 (define (read-memory-simple ptr len)
    (if (eq? len 0)
@@ -47,7 +50,7 @@
    (λ (tuple-from-c)
       (lets ((ptr len max seed tuple-from-c))
          (if (= len 0)
-            (values
+            (library-exit
                (list (band seed #xff))
                (fuzz muta))
             (lets
@@ -57,7 +60,7 @@
                    )
                 (muta output
                   (mutate-simple muta input seed)))
-               (values
+               (library-exit
                   output
                   (fuzz muta)))))))
 
@@ -81,6 +84,12 @@
             (print n " -> " (list->string return))
             (loop entry (append (cdr samples) (list (car samples))) (+ n 1))))))
 
+;; Entry test
+(define (wait arg)
+   (print "radamsa: i got something")
+   (wait (library-exit '(42 42 42))))
+wait
+
 ;; load-time test
 ; (try (fuzz mutas))
 
@@ -88,6 +97,6 @@
 ; (λ (args) (try (fuzz mutas)))
 
 ;; C test
-(fuzz mutas)
+; (fuzz mutas)
 
 

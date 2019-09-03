@@ -23,12 +23,23 @@ word library_call(word val) {
    return res;
 }
 
+size_t list_length(word lispval) {
+   size_t l = 0;
+   while(lispval != INULL) {
+      lispval = G(lispval, 2);
+      l++;
+   }
+}
+
 size_t copy_list(uint8_t *ptr, word lispval, size_t max) {
    size_t n = 0;
-   while(max-- && lispval != INULL) {
+   while(pairp(lispval) && max-- && lispval != INULL) {
       *ptr++ = 255 & immval(G(lispval, 1)); // *ptr++ = car(list)
       n++;
       lispval = G(lispval, 2);              // list   = cdr(list)
+   }
+   if (lispval != INULL) {
+      printf("ERROR: lisp return value was not a proper list. Trailing %d\n", lispval);
    }
    return n;
 }
@@ -47,6 +58,19 @@ size_t radamsa_inplace(uint8_t *ptr, size_t len, size_t max, unsigned int seed) 
    return copy_list(ptr, res, max);
 }
 
+/* size_t radamsa_malloc(void *ptr, size_t len, void *target, size_t &target_len) {
+   word *arg, res;
+   arg = fp;
+   fp += 5;
+   arg[0] = make_header(5, TTUPLE);
+   arg[1] = onum((word)ptr, 0);
+   arg[2] = onum(len * sizeof(void), 0);
+   arg[3] = onum(max, 0);
+   arg[4] = onum(seed, 0);
+   res = library_call((word) arg);
+   return copy_list(ptr, res, max);
+} */
+
 void printbs(uint8_t *data, size_t len) {
    printf("{ ");
    while(len--) {
@@ -59,6 +83,7 @@ char *s1 = "Hello <b>HAL</b> 9000\0";
 char *s2 = "Hello, world!\0";
 #define BUFLEN 64 
 
+/* temporary test */
 int main(int nargs, char **argv) {
    uint8_t foo[BUFLEN];
    int seed = 1;
@@ -72,6 +97,7 @@ int main(int nargs, char **argv) {
       n = radamsa_inplace((uint8_t *) &foo, sample_len, BUFLEN, seed);
       printf("%d -> %.*s\n", seed, n, (char *) &foo);
    }
+   printf("library test passed\n");
    return 0;
 }
 
