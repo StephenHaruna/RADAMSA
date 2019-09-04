@@ -1,3 +1,5 @@
+#include <radamsa.h>
+
 void init() {
    int nobjs=0, nwords=0;
    hp = (byte *) &heap; /* builtin heap */
@@ -47,13 +49,17 @@ size_t copy_list(uint8_t *ptr, word lispval, size_t max) {
 // fuzz data at *ptr of length len, write fuzzed data to *ptr and return its length (which is at most max)
 size_t radamsa_inplace(uint8_t *ptr, size_t len, size_t max, unsigned int seed) {
    word *arg, res;
+   word lptr = onum((word)ptr, 0);
+   word llen = onum((word)len, 0);
+   word lmax = onum((word)max, 0);
+   word lseed = onum((word)seed, 0);
    arg = fp;
    fp += 5;
    arg[0] = make_header(5, TTUPLE);
-   arg[1] = onum((word)ptr, 0);
-   arg[2] = onum(len, 0);
-   arg[3] = onum(max, 0);
-   arg[4] = onum(seed, 0);
+   arg[1] = lptr;
+   arg[2] = llen;
+   arg[3] = lmax;
+   arg[4] = lseed;
    res = library_call((word) arg);
    return copy_list(ptr, res, max);
 }
@@ -70,35 +76,5 @@ size_t radamsa_inplace(uint8_t *ptr, size_t len, size_t max, unsigned int seed) 
    res = library_call((word) arg);
    return copy_list(ptr, res, max);
 } */
-
-void printbs(uint8_t *data, size_t len) {
-   printf("{ ");
-   while(len--) {
-      printf("%d ", *data++);
-   }
-   printf("}\n");
-}
-
-char *s1 = "Hello <b>HAL</b> 9000\0";
-char *s2 = "Hello, world!\0";
-#define BUFLEN 64 
-
-/* temporary test */
-int main(int nargs, char **argv) {
-   uint8_t foo[BUFLEN];
-   int seed = 1;
-   init();
-   while(seed++ < 100) {
-      size_t n;
-      uint8_t *sample = (uint8_t *) ((seed & 1) ? s1 : s2);
-      size_t sample_len = strlen((char *) sample);
-      memset(&foo, 0, BUFLEN);
-      memcpy(foo, sample, sample_len);
-      n = radamsa_inplace((uint8_t *) &foo, sample_len, BUFLEN, seed);
-      printf("%d -> %.*s\n", seed, n, (char *) &foo);
-   }
-   printf("library test passed\n");
-   return 0;
-}
 
 
