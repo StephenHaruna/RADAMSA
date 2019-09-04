@@ -5,7 +5,10 @@
    (only (rad main) urandom-seed)
    (only (rad mutations) 
       mutators->mutator
-      string->mutators default-mutations))
+      string->mutators default-mutations)
+   (only (rad generators)
+      rand-block-size))
+       
 
 (import 
    (only (owl syscall) library-exit)) ;; library call return/resume
@@ -48,21 +51,21 @@
             
 (define (fuzz muta)
    (λ (tuple-from-c)
+      ;(print "-> radamsa: " tuple-from-c)
       (lets ((ptr len max seed tuple-from-c))
          (if (= len 0)
-            (library-exit
-               (list (band seed #xff))
-               (fuzz muta))
+            ((fuzz muta)
+               (library-exit (list (band seed #xff))))
             (lets
                ((rs (seed->rands seed))
-                (input 
-                   (read-memory ptr len)
-                   )
-                (muta output
-                  (mutate-simple muta input seed)))
-               (library-exit
-                  output
-                  (fuzz muta)))))))
+                (input (read-memory ptr len))
+                (muta output (mutate-simple muta input seed))
+                ;(output (cons 10 input))
+                ;(output '(42 42 42))
+               )
+               ;(print "<- output is " output)
+               ((fuzz muta)
+                  (library-exit output)))))))
 
 (define (try entry)
    (let loop ((entry entry)
@@ -85,10 +88,10 @@
             (loop entry (append (cdr samples) (list (car samples))) (+ n 1))))))
 
 ;; Entry test
-(define (wait arg)
-   (print "radamsa: i got something")
-   (wait (library-exit '(42 42 42))))
-wait
+;(define (wait arg)
+;   (print "radamsa: i got something")
+;   (wait (library-exit '(42 42 42))))
+;wait
 
 ;; load-time test
 ; (try (fuzz mutas))
@@ -97,6 +100,6 @@ wait
 ; (λ (args) (try (fuzz mutas)))
 
 ;; C test
-; (fuzz mutas)
+(fuzz mutas)
 
 

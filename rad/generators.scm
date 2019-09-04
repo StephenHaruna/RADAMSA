@@ -2,6 +2,9 @@
 ;;; Data Generators
 ;;;
 
+
+;; a generator 
+
 (define-library (rad generators)
 
    (import
@@ -16,6 +19,7 @@
       string->generator-priorities         ;; done at cl args parsing time
       generator-priorities->generator      ;; done after cl args
       stream-port
+      rand-block-size                      ;; rs → rs n
       )
 
    (begin
@@ -81,6 +85,7 @@
                            (close-port port)
                            (halt 1))))
                   default-endianness)))
+         
          (define (read-block-header port)
             (let ((block-header (read-bytevector 8 port)))
                (cond 
@@ -93,6 +98,7 @@
                      (print "pcapng-port->stream: cannot read the initial 8 bytes of the current block")
                      (close-port port)
                      (halt 1)))))
+         
          (define (read-block-content port block-header)
             (let* ((block-type (bytes->uint32 (take block-header 4)))
                    (block-length (bytes->uint32 (drop block-header 4)))
@@ -109,6 +115,7 @@
                      (print "pcapng-port->stream: cannot read block content, received less than expected (length=" block-content-length ")")
                      (close-port port)
                      (halt 3)))))
+         
          (define (read-last-block-length port block-header)
             (let ((expected-block-length (bytes->uint32 (drop block-header 4)))
                   (last-block-length (read-bytevector 4 port)))
@@ -124,6 +131,7 @@
                      (print "pcapng-port->stream:  bad last block length")
                      (close-port port)
                      (halt 5)))))
+         
          (define (read-next-block port endianness)
             (let ((block-header (read-block-header port)))
                (if (not (null? block-header))
@@ -137,6 +145,7 @@
                               (values null endianness #false)))
                         (values null endianness #false)))
                   (values null endianness #false))))
+         
          (let loop ((endianness 'little-endian) (encountered-interesting-block #false))
             (lets 
                ((block endianness encountered-new-interesting-block (read-next-block port endianness)))
@@ -331,10 +340,10 @@
                            (if paths
                               (cons priority (file-streamer paths))
                               #false))
-			((equal? name "pcapng")
-			   (if paths
-			      (cons priority (pcapng-streamer paths))
-			      #false))
+                        ((equal? name "pcapng")
+                           (if paths
+                              (cons priority (pcapng-streamer paths))
+                              #false))
                         ((equal? name "jump")
                            (if paths
                               (cons priority

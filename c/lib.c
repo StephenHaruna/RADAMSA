@@ -35,12 +35,12 @@ size_t list_length(word lispval) {
 
 size_t copy_list(uint8_t *ptr, word lispval, size_t max) {
    size_t n = 0;
-   while(pairp(lispval) && max-- && lispval != INULL) {
+   while(pairp((word)lispval) && max-- && lispval != INULL) {
       *ptr++ = 255 & immval(G(lispval, 1)); // *ptr++ = car(list)
       n++;
       lispval = G(lispval, 2);              // list   = cdr(list)
    }
-   if (lispval != INULL) {
+   if (lispval != INULL && max == 0) {
       printf("ERROR: lisp return value was not a proper list. Trailing %d\n", lispval);
    }
    return n;

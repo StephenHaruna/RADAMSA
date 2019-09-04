@@ -19,6 +19,7 @@
       (rad pcapng))
 
    (export 
+      urandom-seed
       radamsa)
 
    (begin
