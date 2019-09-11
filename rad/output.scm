@@ -15,6 +15,7 @@
    (export
       output
       checksummer dummy-checksummer
+      stream-chunk
       dummy-output        ;; construct, but don't write
       string->outputs)    ;; str num → ll of output functions | #false
 

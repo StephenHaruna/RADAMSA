@@ -241,7 +241,7 @@ Radamsa was written by Aki Helin, initially at OUSPG.")
              (n (getf dict 'count))
              (end (if (number? n) (+ n (get dict 'offset 0)) n))
              (mutas (if (pcapng-input? dict)
-	               (pcapng-instrument-mutations (getf dict 'mutations))
+                  (pcapng-instrument-mutations (getf dict 'mutations))
                        (getf dict 'mutations)))
              (hash (getf dict 'hash))
              (checksummer 

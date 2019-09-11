@@ -103,13 +103,13 @@ c/libradamsa.c: c/lib.c rad/*.scm
 	cat c/lib.c >> c/libradamsa.c
 
 bin/libradamsa.a: c/libradamsa.c
-	cc -fsanitize=address -I c -O -o bin/libradamsa.a -c c/libradamsa.c
+	cc -fsanitize=address -I c -o bin/libradamsa.a -c c/libradamsa.c
 
 bin/libradamsa-test: bin/libradamsa.a c/libradamsa-test.c
-	gcc -fsanitize=address -Ic -O -o bin/libradamsa-test c/libradamsa-test.c -Lbin -lradamsa
+	gcc -fsanitize=address -Ic -o bin/libradamsa-test c/libradamsa-test.c -Lbin -lradamsa
 
 libradamsa-test: bin/libradamsa-test
-	bin/libradamsa-test | grep "library test passed"
+	bin/libradamsa-test c/lib.c | grep "library test passed"
 
 uninstall:
 	rm $(DESTDIR)$(PREFIX)/bin/radamsa || echo "no radamsa"

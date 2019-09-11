@@ -1,4 +1,3 @@
-
 (import 
    (owl base)
    (only (owl sys) peek-byte)
@@ -6,12 +5,18 @@
    (only (rad mutations) 
       mutators->mutator
       string->mutators default-mutations)
+   (only (rad output) 
+      stream-chunk)
+   (only (rad patterns)
+      default-patterns
+      string->patterns)
    (only (rad generators)
       rand-block-size))
-       
 
 (import 
    (only (owl syscall) library-exit)) ;; library call return/resume
+
+   
 
 ;; todo: add a proper read primop
 (define (read-memory-simple ptr len)
@@ -25,14 +30,50 @@
       (take (string->bytes source) len)
       (read-memory-simple source len)))
 
-; (define (read-memory ptr len) (string->bytes "Hello <foo arg=42>"))
-   
+;; rs ptr len → rs (bvec ...)
+(define (read-memory->chunks rs source len)
+   (if (> len 0)
+      (lets 
+         ((rs s (rand-block-size rs))
+          (s (min s len))
+          (rs tail (read-memory->chunks rs (+ source s) (- len s)))
+          (bv (list->bytevector (read-memory-simple source s))))
+         (values rs 
+            (cons bv tail)))
+      (values rs #null)))
+
 (define mutas 
    (lets ((rs mutas 
             (mutators->mutator 
                (seed->rands 42)
                (string->mutators default-mutations))))
       mutas))
+
+(define patterns 
+   (string->patterns default-patterns))
+
+;; fuzzer output is a ll of byte vectors followed by a #(rs muta meta) -tuple
+;; generate a byte list (for now) of the data to be returned and also return 
+;; the mutas, which is where radamsa learns
+
+;; rs muta input-chunks → rs' muta' (byte ...)
+(define (fuzz->output rs muta chunks)
+   (print 42)
+   (lets 
+      ((routput (reverse (force-ll (patterns rs chunks muta #empty))))
+       (state (car routput))
+       (rs muta meta state)
+       (output-bytes
+          (fold
+             (λ (out chunk)
+                (let ((n (vector-length chunk)))
+                   (if (eq? n 0)
+                      out
+                      (stream-chunk chunk (- n 1) out))))
+             #null
+             (cdr routput))))
+       (values rs muta output-bytes)))
+       
 
 (define (mutate-simple mutator byte-list seed)
    (lets
@@ -51,19 +92,25 @@
             
 (define (fuzz muta)
    (λ (tuple-from-c)
-      ;(print "-> radamsa: " tuple-from-c)
-      (lets ((ptr len max seed tuple-from-c))
+      ; (print "-> radamsa: " tuple-from-c)
+      (lets 
+         ((ptr len max seed tuple-from-c)
+          (start (time-ms)))
          (if (= len 0)
             ((fuzz muta)
                (library-exit (list (band seed #xff))))
             (lets
                ((rs (seed->rands seed))
-                (input (read-memory ptr len))
-                (muta output (mutate-simple muta input seed))
+                ;(input (read-memory ptr len))
+                (rs inputp (read-memory->chunks rs ptr len))
+                ;(muta output (mutate-simple muta input seed))
                 ;(output (cons 10 input))
                 ;(output '(42 42 42))
+                (rs muta output 
+                   (fuzz->output rs muta inputp))
                )
-               ;(print "<- output is " output)
+               (print-to stderr
+                  "Radamsa took " (- (time-ms) start) "ms")
                ((fuzz muta)
                   (library-exit output)))))))
 
