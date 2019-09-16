@@ -2,6 +2,7 @@
    (owl base)
    (only (owl sys) peek-byte)
    (only (rad main) urandom-seed)
+   (only (rad output) byte-list-checksummer)
    (only (rad mutations) 
       mutators->mutator
       string->mutators default-mutations)
@@ -11,12 +12,20 @@
       default-patterns
       string->patterns)
    (only (rad generators)
-      rand-block-size))
+      rand-block-size)
+   (only (rad digest)
+      string->hash
+      empty-digests
+      dget
+      dput))
 
 (import 
    (only (owl syscall) library-exit)) ;; library call return/resume
 
-   
+  
+;; when testing
+(define sample-data (list->vector (string->list "<b>HAL</b> 9000")))
+(define (peek-byte ptr) (vector-ref sample-data (band ptr 15)))
 
 ;; todo: add a proper read primop
 (define (read-memory-simple ptr len)
@@ -25,10 +34,12 @@
       (cons (peek-byte ptr)
          (read-memory-simple (+ ptr 1) (- len 1)))))
 
-(define (read-memory source len)
-   (if (string? source)
-      (take (string->bytes source) len)
-      (read-memory-simple source len)))
+(define (read-memory-simple ptr len)
+   (if (eq? len 0)
+      #null
+      (cons (peek-byte ptr)
+         (read-memory-simple (+ ptr 1) (- len 1)))))
+
 
 ;; rs ptr len → rs (bvec ...)
 (define (read-memory->chunks rs source len)
@@ -42,6 +53,8 @@
             (cons bv tail)))
       (values rs #null)))
 
+
+
 (define mutas 
    (lets ((rs mutas 
             (mutators->mutator 
@@ -52,13 +65,18 @@
 (define patterns 
    (string->patterns default-patterns))
 
+(define library-checksummer
+   (byte-list-checksummer (string->hash "stream")))
+
+(define initial-digests 
+   (empty-digests (* 8 1024)))
+
 ;; fuzzer output is a ll of byte vectors followed by a #(rs muta meta) -tuple
 ;; generate a byte list (for now) of the data to be returned and also return 
 ;; the mutas, which is where radamsa learns
 
 ;; rs muta input-chunks → rs' muta' (byte ...)
 (define (fuzz->output rs muta chunks)
-   (print 42)
    (lets 
       ((routput (reverse (force-ll (patterns rs chunks muta #empty))))
        (state (car routput))
@@ -89,64 +107,60 @@
                (append (bytevector->list bvec) out))
             '()
             chunks))))
-            
-(define (fuzz muta)
+
+(define (fuzz-unseen rs cs muta input)
+   (print "fuzz unseen")
+   (lets 
+      ((rs muta output 
+         (fuzz->output rs muta input))
+       (_ (print "output is " output))
+       (out-lst cs csum
+          (library-checksummer cs output)))
+      (print "CSUM " csum)
+      (if csum
+         ;; this was unique
+         (values rs cs output)
+         ;; duplicate, retry with subsequent random state
+         (fuzz-unseen rs cs muta input))))
+
+(define (library-exit value)
+   (print "LIBRARY WOULD RETURN " value)
+   "foo")        
+
+(define (fuzz muta digests)
    (λ (tuple-from-c)
-      ; (print "-> radamsa: " tuple-from-c)
+      (print "-> radamsa: " tuple-from-c)
       (lets 
          ((ptr len max seed tuple-from-c)
           (start (time-ms)))
-         (if (= len 0)
-            ((fuzz muta)
-               (library-exit (list (band seed #xff))))
-            (lets
-               ((rs (seed->rands seed))
-                ;(input (read-memory ptr len))
-                (rs inputp (read-memory->chunks rs ptr len))
-                ;(muta output (mutate-simple muta input seed))
-                ;(output (cons 10 input))
-                ;(output '(42 42 42))
-                (rs muta output 
-                   (fuzz->output rs muta inputp))
-               )
-               (print-to stderr
-                  "Radamsa took " (- (time-ms) start) "ms")
-               ((fuzz muta)
-                  (library-exit output)))))))
+         (cond
+            ((= len 0)
+               ;; dummy handling of empty sample input
+               ((fuzz muta digests)
+                  (library-exit (list (band seed #xff)))))
+            (else
+               (lets
+                  ((rs (seed->rands seed))
+                   (rs inputp (read-memory->chunks rs ptr len))
+                   (_ (print "input is " inputp))
+                   (rs digests muta output 
+                      (fuzz-unseen rs digests muta inputp)))
+                  (print-to stderr
+                     "Radamsa took " (- (time-ms) start) "ms")
+                  ((fuzz muta digests)
+                     (library-exit output))))))))
 
-(define (try entry)
-   (let loop ((entry entry)
-              (samples 
-                 '("Hello <b>HAL</b> 9000" 
-                   "Hello, world!" 
-                   ))
-              (n 1))
-      (if (= n 100)
-         12
-         (lets 
-            ((return entry
-               (entry 
-                  (tuple 
-                     (car samples)
-                     100
-                     100
-                     n))))
-            (print n " -> " (list->string return))
-            (loop entry (append (cdr samples) (list (car samples))) (+ n 1))))))
-
-;; Entry test
-;(define (wait arg)
-;   (print "radamsa: i got something")
-;   (wait (library-exit '(42 42 42))))
-;wait
+(define (try input)
+   ((fuzz mutas initial-digests)
+      (tuple input 32 64  (time-ms))))
 
 ;; load-time test
-; (try (fuzz mutas))
+(try 0)
 
 ;; fasl test
-; (λ (args) (try (fuzz mutas)))
+; (λ (args) (try (fuzz mutas initial-digests)))
 
 ;; C test
-(fuzz mutas)
+; (fuzz mutas initial-digests)
 
 

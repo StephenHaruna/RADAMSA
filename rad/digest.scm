@@ -18,11 +18,13 @@
    
    (begin
 
+      (define max-hash-count (* 1024 1024))
+      
       (define null '())
       
       (define (empty-digests max)
          (tuple #empty max 0))
-         
+      
       (define (dget* tree d)
          (if (eq? tree #empty)
             #false
@@ -40,14 +42,17 @@
             (put tree (car d)
                (dput* (get tree (car d) #empty) (cdr d)))))
 
-      ;; todo: track duplicates and keep top n% across generations
       (define (prune tree size)
          (tuple #empty size 0))
+      
+      (define (grow tree old-size)
+         (empty-digests 
+            (min (* old-size 2) max-hash-count)))
          
       (define (dput cs d)
          (lets ((tree max n cs))
             (if (eq? n max)
-               (dput (prune tree max) d)
+               (dput (grow tree max) d)
                (tuple (dput* tree d) max (+ n 1)))))
          
       (define (bs->trits bs)
@@ -89,6 +94,9 @@
                        (get-trit (cons a (ll)))))))
             (else (get-trit (ll)))))
 
+
+      ;;; Custom Stream hash
+      
       (define (pollinate a b)
          (lets ((ah a (fx>> a 21))
                 (bh b (fx>> b 21))
@@ -100,7 +108,6 @@
          (lets ((fst len ll (get-trit ll)))
             (let loop ((ll ll) (a fst) (sum fst) (len len) (par fst) (lag 0))
                (if (null? ll)
-                  ;(list len fst a sum par lag)
                   (list 
                      (band #xffffff (bior (<< sum 10) len))
                      (if (= fst a) fst (fxxor fst a))
@@ -116,39 +123,42 @@
                            (lets ((sum par (pollinate sum par)))
                               (loop ll b sum len par lag))))))))
 
-   (define (hash-stream ll)
-      (let ((res (digest ll)))
-         (values 
-            res                   ;; correct 
-            (str res)))) ;; →  trits->hex
+      (define (hash-stream ll)
+         (let ((res (digest ll)))
+            (values 
+               res          ;; correct 
+               (str res)))) ;; →  trits->hex
 
-   (define (bytes->trits lst)
-      (let loop ((lst lst) (trit 0) (n 0))
-         (cond
-            ((null? lst)
-               (if (eq? n 0)
-                  null
-                  (list trit)))
-            ((eq? n 3)
-               (cons trit (loop lst 0 0)))
-            (else
-               (loop (cdr lst)
-                  (bior (<< trit 8) (car lst))
-                  (+ n 1))))))
-               
-   (define (hash-sha256 lst)
-      (let ((bs (sha256-bytes lst)))
-         (values 
-            (bytes->trits bs)
-            (hex-encode-list bs))))
+
+      ;;; SHA256
       
-   (define (string->hash s)
-      (cond
-         ((string-ci=? s "stream") hash-stream)
-         ((string-ci=? s "sha256") hash-sha256)
-         ((string-ci=? s "sha") hash-sha256)
-         (else #f)))
-   
+      ;; merge 3 bytes, since they fit a fixnum
+      (define (bytes->trits lst)
+         (let loop ((lst lst) (trit 0) (n 0))
+            (cond
+               ((null? lst)
+                  (if (eq? n 0)
+                     null
+                     (list trit)))
+               ((eq? n 3)
+                  (cons trit (loop lst 0 0)))
+               (else
+                  (loop (cdr lst)
+                     (bior (<< trit 8) (car lst))
+                     (+ n 1))))))
+                  
+      (define (hash-sha256 lst)
+         (let ((bs (sha256-bytes lst)))
+            (values 
+               (bytes->trits bs)
+               (hex-encode-list bs))))
+         
+      (define (string->hash s)
+         (cond
+            ((string-ci=? s "stream") hash-stream)
+            ((string-ci=? s "sha256") hash-sha256)
+            ((string-ci=? s "sha") hash-sha256)
+            (else #f)))
       
 ))
          

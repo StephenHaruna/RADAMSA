@@ -14,7 +14,7 @@
 
    (export
       output
-      checksummer dummy-checksummer
+      checksummer dummy-checksummer byte-list-checksummer
       stream-chunk
       dummy-output        ;; construct, but don't write
       string->outputs)    ;; str num → ll of output functions | #false
@@ -104,6 +104,13 @@
                ((lst (force-ll ll))
                 (bs (output-stream->byte-stream lst))
                 (csum-trits csum-string (hash bs)))
+               (if (dget cs csum-trits)
+                  (values lst cs #false)
+                  (values lst (dput cs csum-trits) csum-string)))))
+      
+      (define (byte-list-checksummer hash)
+         (λ (cs lst)
+            (lets ((csum-trits csum-string (hash lst)))
                (if (dget cs csum-trits)
                   (values lst cs #false)
                   (values lst (dput cs csum-trits) csum-string)))))
