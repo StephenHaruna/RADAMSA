@@ -36,9 +36,9 @@ int main(int nargs, char **argv) {
       printf("cannot open %s", spath);
       return(1);
    }
-   int seed = 1;
+   int seed = 0;
    init();
-   while(seed++ < 100) {
+   while(seed++ < 1000) {
       size_t n;
       void* data = mmap(NULL, len, PROT_READ | PROT_WRITE , MAP_PRIVATE | MAP_POPULATE, fd, 0);
       printf("orig> ");

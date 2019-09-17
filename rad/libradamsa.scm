@@ -24,8 +24,8 @@
 
   
 ;; when testing
-(define sample-data (list->vector (string->list "<b>HAL</b> 9000")))
-(define (peek-byte ptr) (vector-ref sample-data (band ptr 15)))
+; (define sample-data (list->vector (string->list "<b>HAL</b> 9000")))
+; (define (peek-byte ptr) (vector-ref sample-data (band ptr 15)))
 
 ;; todo: add a proper read primop
 (define (read-memory-simple ptr len)
@@ -52,8 +52,6 @@
          (values rs 
             (cons bv tail)))
       (values rs #null)))
-
-
 
 (define mutas 
    (lets ((rs mutas 
@@ -109,27 +107,21 @@
             chunks))))
 
 (define (fuzz-unseen rs cs muta input)
-   (print "fuzz unseen")
    (lets 
       ((rs muta output 
          (fuzz->output rs muta input))
-       (_ (print "output is " output))
        (out-lst cs csum
           (library-checksummer cs output)))
-      (print "CSUM " csum)
       (if csum
          ;; this was unique
-         (values rs cs output)
+         (values rs cs muta output)
          ;; duplicate, retry with subsequent random state
          (fuzz-unseen rs cs muta input))))
 
-(define (library-exit value)
-   (print "LIBRARY WOULD RETURN " value)
-   "foo")        
+; (define (library-exit value) (print "LIBRARY WOULD RETURN " value) "foo")        
 
 (define (fuzz muta digests)
    (λ (tuple-from-c)
-      (print "-> radamsa: " tuple-from-c)
       (lets 
          ((ptr len max seed tuple-from-c)
           (start (time-ms)))
@@ -142,11 +134,9 @@
                (lets
                   ((rs (seed->rands seed))
                    (rs inputp (read-memory->chunks rs ptr len))
-                   (_ (print "input is " inputp))
                    (rs digests muta output 
                       (fuzz-unseen rs digests muta inputp)))
-                  (print-to stderr
-                     "Radamsa took " (- (time-ms) start) "ms")
+                  ;(print-to stderr "Radamsa took " (- (time-ms) start) "ms")
                   ((fuzz muta digests)
                      (library-exit output))))))))
 
@@ -155,12 +145,12 @@
       (tuple input 32 64  (time-ms))))
 
 ;; load-time test
-(try 0)
+; (try 0)
 
 ;; fasl test
 ; (λ (args) (try (fuzz mutas initial-digests)))
 
 ;; C test
-; (fuzz mutas initial-digests)
+(fuzz mutas initial-digests)
 
 
