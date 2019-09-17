@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <inttypes.h>
 #include <string.h>
-
+#include <stdlib.h>
 #include <sys/mman.h>
 #include <sys/types.h>
 #include <fcntl.h>
@@ -15,49 +15,62 @@ size_t filesize(char* filename) {
     return st.st_size;
 }
 
-void printbs(uint8_t *data, size_t len) {
-   printf("{ ");
-   while(len--) {
-      printf("%d ", *data++);
-   }
-   printf("}\n");
+#define BUFSIZE 1024*1024
+
+void fail(char *why) {
+   printf("fail: %s\n", why);
+   exit(1);
 }
 
-char *s1 = "Hello <b>HAL</b> 9000\0";
-char *s2 = "Hello, world!\0";
-#define BUFLEN 64 
+void write_output(char *data, size_t len, int num) {
+   char path[32];
+   int fd;
+   int wrote;
+   sprintf(path, "lib-%d.fuzz", num); 
+   fd = open(path, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
+   printf("Opened %s -> %d\n", path, fd);
+   if (fd < 0) {
+      fail("failed to open output file");
+   }
+   wrote = write(fd, data, len);
+   printf("wrote %d of %d bytes\n", wrote, len);
+   if (wrote != len) {
+      fail("failed to write all of output at once");
+   }
+   close(fd);
+   printf("Wrote %d bytes to %s\n", len, path);
+}
 
-/* temporary test */
 int main(int nargs, char **argv) {
    char *spath = argv[1];
    int fd = open(spath, O_RDONLY, 0);
-   size_t len = filesize(spath);
-   if (fd < 0) {
-      printf("cannot open %s", spath);
-      return(1);
-   }
+   size_t len;
+   char *input;
+   char *output;
    int seed = 0;
+   if (fd < 0) {
+      fail("cannot open input file");
+   }
+   len = filesize(spath);
+   input = malloc(len);
+   output = malloc(BUFSIZE);
+   if (!input || !output) {
+      fail("failed to allocate buffers\n");
+   }
    init();
-   while(seed++ < 1000) {
+   if (len != read(fd, input, len)) {
+      fail("failed to read the entire sample at once");
+   }
+   while(seed++ < 100) {
       size_t n;
-      void* data = mmap(NULL, len, PROT_READ | PROT_WRITE , MAP_PRIVATE | MAP_POPULATE, fd, 0);
-      printf("orig> ");
-      fflush(stdout);
-      write(1, (char *) data, len);
-      printf("\n");
-      if (data == MAP_FAILED) {
-         printf("failed to mmap %s\n", spath);
-         return(1);
-      }
-      n = radamsa_inplace((uint8_t *) data, len, len, seed);
-      printf("fuzzed< ");
-      fflush(stdout);
-      write(1, (char *) data, n);
-      printf("\n");
-      munmap(data, len);
+      memcpy(output, input, len);
+      n = radamsa_inplace((uint8_t *) output, len, BUFSIZE, seed);
+      write_output(output, n, seed);
+      printf("Fuzzed %d -> %d bytes\n", len, n);
    }
    printf("library test passed\n");
+   free(output);
+   free(input);
    return 0;
 }
-
 
