@@ -63,7 +63,7 @@ fasltest: radamsa.fasl
 standalone:
 	-rm radamsa.c # likely old version
 	make radamsa.c
-   # compile without seccomp and use of syscall
+	# compile without seccomp and use of syscall
 	diet gcc -DNO_SECCOMP -O3 -Wall -o bin/radamsa radamsa.c
 
 # a quick to compile vanilla bytecode executable
