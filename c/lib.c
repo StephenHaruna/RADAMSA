@@ -46,8 +46,8 @@ size_t copy_list(uint8_t *ptr, word lispval, size_t max) {
    return n;
 }
 
-// fuzz data at *ptr of length len, write fuzzed data to *ptr and return its length (which is at most max)
-size_t radamsa_inplace(uint8_t *ptr, size_t len, size_t max, unsigned int seed) {
+/* read data from *ptr - *(ptr + len), write output to *target and return amount of data written */
+size_t radamsa(uint8_t *ptr, size_t len, uint8_t *target, size_t max, unsigned int seed) {
    word *arg, res;
    word lptr = onum((word)ptr, 0);
    word llen = onum((word)len, 0);
@@ -61,20 +61,10 @@ size_t radamsa_inplace(uint8_t *ptr, size_t len, size_t max, unsigned int seed) 
    arg[3] = lmax;
    arg[4] = lseed;
    res = library_call((word) arg);
-   return copy_list(ptr, res, max);
+   return copy_list(target, res, max);
 }
 
-/* size_t radamsa_malloc(void *ptr, size_t len, void *target, size_t &target_len) {
-   word *arg, res;
-   arg = fp;
-   fp += 5;
-   arg[0] = make_header(5, TTUPLE);
-   arg[1] = onum((word)ptr, 0);
-   arg[2] = onum(len * sizeof(void), 0);
-   arg[3] = onum(max, 0);
-   arg[4] = onum(seed, 0);
-   res = library_call((word) arg);
-   return copy_list(ptr, res, max);
-} */
-
+size_t radamsa_inplace(uint8_t *ptr, size_t len, size_t max, unsigned int seed) {
+   return radamsa(ptr, len, ptr, max, seed);
+}
 

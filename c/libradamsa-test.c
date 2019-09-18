@@ -26,7 +26,7 @@ void write_output(char *data, size_t len, int num) {
    char path[32];
    int fd;
    int wrote;
-   sprintf(path, "lib-%d.fuzz", num); 
+   sprintf(path, "tmp/lib-%d.fuzz", num); 
    fd = open(path, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
    printf("Opened %s -> %d\n", path, fd);
    if (fd < 0) {
@@ -63,8 +63,7 @@ int main(int nargs, char **argv) {
    }
    while(seed++ < 100) {
       size_t n;
-      memcpy(output, input, len);
-      n = radamsa_inplace((uint8_t *) output, len, BUFSIZE, seed);
+      n = radamsa((uint8_t *) input, len, (uint8_t *) output, BUFSIZE, seed);
       write_output(output, n, seed);
       printf("Fuzzed %d -> %d bytes\n", len, n);
    }
