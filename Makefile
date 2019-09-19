@@ -4,7 +4,7 @@ BINDIR=/bin
 CFLAGS?=-Wall -O2
 LDFLAGS?=
 OFLAGS=-O2
-OWLURL=https://gitlab.com/owl-lisp/owl/uploads/0d0730b500976348d1e66b4a1756cdc3/ol-0.1.19.c.gz
+OWLURL=https://gitlab.com/owl-lisp/owl/uploads/38d13ea55860be90b8c0a4519810c6d5/ol-0.1.20.c.gz
 USR_BIN_OL?=/usr/bin/ol
 
 everything: bin/radamsa
@@ -95,9 +95,7 @@ autofuzz: bin/radamsa
 
 ## Library mode test
 
-c/libradamsa.c: c/lib.c rad/*.scm
-	# future -> use dev owl which has peek-byte
-	test -d owl || make future
+c/libradamsa.c: bin/ol c/lib.c rad/*.scm
 	bin/ol -O1 --mode library -o c/libradamsa.c rad/libradamsa.scm
 	sed -i 's/int main/int secondary/' c/libradamsa.c
 	cat c/lib.c >> c/libradamsa.c
