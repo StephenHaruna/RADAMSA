@@ -33,12 +33,12 @@ void write_output(char *data, size_t len, int num) {
       fail("failed to open output file");
    }
    wrote = write(fd, data, len);
-   printf("wrote %d of %d bytes\n", wrote, len);
+   printf("wrote %d of %zu bytes\n", wrote, len);
    if (wrote != len) {
       fail("failed to write all of output at once");
    }
    close(fd);
-   printf("Wrote %d bytes to %s\n", len, path);
+   printf("Wrote %zu bytes to %s\n", len, path);
 }
 
 int main(int nargs, char **argv) {
@@ -65,7 +65,7 @@ int main(int nargs, char **argv) {
       size_t n;
       n = radamsa((uint8_t *) input, len, (uint8_t *) output, BUFSIZE, seed);
       write_output(output, n, seed);
-      printf("Fuzzed %d -> %d bytes\n", len, n);
+      printf("Fuzzed %zu -> %zu bytes\n", len, n);
    }
    printf("library test passed\n");
    free(output);
