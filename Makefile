@@ -96,13 +96,19 @@ autofuzz: bin/radamsa
 ## Library mode test
 
 c/libradamsa.c: bin/ol c/lib.c rad/*.scm
-	bin/ol -O1 --mode library -o c/libradamsa.c rad/libradamsa.scm
+	bin/ol -O2 --mode library -o c/libradamsa.c rad/libradamsa.scm
 	sed -i 's/int main/int secondary/' c/libradamsa.c
 	cat c/lib.c >> c/libradamsa.c
 
 lib/libradamsa.a: c/libradamsa.c
 	mkdir -p lib
-	cc -O2 -I c -o lib/libradamsa.a -c c/libradamsa.c
+	cc -O3 -I c -o lib/libradamsa.a -c c/libradamsa.c
+
+lib/libradamsa.so: c/libradamsa.c
+	mkdir -p lib
+	# temporary hack
+	sed --in-place -e '/radamsa\.h/d' c/libradamsa.c
+	cc -shared -pg -g -O2 -Wall c/libradamsa.c -o lib/libradamsa.so -fPIC
 
 bin/libradamsa-test: lib/libradamsa.a c/libradamsa-test.c
 	mkdir -p tmp
