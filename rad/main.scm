@@ -274,7 +274,8 @@ Radamsa was written by Aki Helin, initially at OUSPG.")
                      ((rs ll meta (gen rs))
                       (meta (put meta 'nth p))
                       (out-ll (pat rs ll muta meta))
-                      (out-lst cs csum (checksummer cs out-ll)))
+                      (out-lst cs csum (checksummer cs out-ll))
+                      (meta (put meta 'csum (or csum "nac"))))
                      (if csum 
                         (if (eq? offset 1)
                            (lets

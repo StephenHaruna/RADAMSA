@@ -165,6 +165,7 @@
                               ((and (eq? char #\%) (pair? tl))
                                  (case (car tl)
                                     ((#\n) (render (get meta 'nth 0) (cdr tl)))
+                                    ((#\h) (render (get meta 'csum "blank") (cdr tl)))
                                     ((#\s) (append (path-suffix (source-path meta default-path) default-path) (cdr tl)))
                                     ((#\p) (append suf (cdr tl)))
                                     ((#\0) ;; %0[0-9]+n -> testcase number with padding
