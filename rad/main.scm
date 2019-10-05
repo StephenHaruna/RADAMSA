@@ -275,7 +275,7 @@ Radamsa was written by Aki Helin, initially at OUSPG.")
                       (meta (put meta 'nth p))
                       (out-ll (pat rs ll muta meta))
                       (out-lst cs csum (checksummer cs out-ll))
-                      (meta (put meta 'csum (or csum "nac"))))
+                      (meta (put meta 'checksum (or csum "blank"))))
                      (if csum 
                         (if (eq? offset 1)
                            (lets
@@ -284,8 +284,7 @@ Radamsa was written by Aki Helin, initially at OUSPG.")
                                  (output out-lst fd))
                                (meta 
                                   (-> (ff-union meta generation-meta K)
-                                     (put 'length n-written)
-                                     (put 'checksum csum))))
+                                     (put 'length n-written))))
                               (record-meta meta)
                               (sleeper)
                               (loop rs muta pat out 1 (+ p 1) cs (- left 1)))

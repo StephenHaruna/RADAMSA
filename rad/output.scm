@@ -165,7 +165,7 @@
                               ((and (eq? char #\%) (pair? tl))
                                  (case (car tl)
                                     ((#\n) (render (get meta 'nth 0) (cdr tl)))
-                                    ((#\h) (render (get meta 'csum "blank") (cdr tl)))
+                                    ((#\h) (render (get meta 'checksum "blank") (cdr tl)))
                                     ((#\s) (append (path-suffix (source-path meta default-path) default-path) (cdr tl)))
                                     ((#\p) (append suf (cdr tl)))
                                     ((#\0) ;; %0[0-9]+n -> testcase number with padding
@@ -190,7 +190,7 @@
                                        (print*-to stderr
                                           (list "Warning: unknown pattern in output path: '" 
                                              (list->string (list char (car tl)))
-                                             "'. Did you mean '%n, %s or %p'?"))
+                                             "'. Did you mean '%n, %s, %h or %p'?"))
                                        (cons char tl))))
                               (else (cons char tl))))
                         null pat)))
