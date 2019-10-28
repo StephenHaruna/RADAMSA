@@ -115,7 +115,7 @@ bin/libradamsa-test: lib/libradamsa.a c/libradamsa-test.c
 	cc -O2 -Ic -o bin/libradamsa-test c/libradamsa-test.c -Llib -lradamsa
 
 libradamsa-test: bin/libradamsa-test
-	time bin/libradamsa-test c/lib.c | grep "library test passed"
+	bin/libradamsa-test c/lib.c | grep "library test passed"
 
 
 ## Cleanup and Meta
