@@ -96,7 +96,7 @@ autofuzz: bin/radamsa
 ## Library mode test
 
 c/libradamsa.c: bin/ol c/lib.c rad/*.scm
-	bin/ol -O2 --mode library -o c/libradamsa.c rad/libradamsa.scm
+	bin/ol $(OFLAGS) --mode library -o c/libradamsa.c rad/libradamsa.scm
 	sed -i 's/int main/int secondary/' c/libradamsa.c
 	cat c/lib.c >> c/libradamsa.c
 
@@ -115,7 +115,7 @@ bin/libradamsa-test: lib/libradamsa.a c/libradamsa-test.c
 	cc -O2 -Ic -o bin/libradamsa-test c/libradamsa-test.c -Llib -lradamsa
 
 libradamsa-test: bin/libradamsa-test
-	bin/libradamsa-test c/lib.c | grep "library test passed"
+	time bin/libradamsa-test c/lib.c | grep "library test passed"
 
 
 ## Cleanup and Meta
