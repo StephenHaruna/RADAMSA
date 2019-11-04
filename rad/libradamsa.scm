@@ -76,7 +76,7 @@
 ;; rs muta input-chunks → rs' muta' (byte ...)
 (define (fuzz->output rs muta chunks)
    (lets
-      ((routput (reverse (force-ll (patterns rs chunks muta #empty))))
+      ((routput (reverse (force-ll (patterns rs chunks muta empty))))
        (state (car routput))
        (rs muta meta state)
        (output-bytes
@@ -97,7 +97,7 @@
          (mutator
             (seed->rands seed)
             (list (list->bytevector byte-list))
-            #empty)))
+            empty)))
       (values
          mutator
          (foldr

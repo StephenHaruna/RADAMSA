@@ -4,7 +4,7 @@
 
 (define-library (rad patterns)
 
-   (import 
+   (import
       (owl base)
       (rad shared)
       (rad pcapng))
@@ -17,7 +17,7 @@
    (begin
 
       (define null '())
-           
+
       (define max-burst-mutations 16)
 
       (define (mutate-once rs ll mutator meta cont)
@@ -31,7 +31,7 @@
                      (loop rs this (ll) ip)
                      (lets ((rs n (rand rs ip)))
                         (if (and (or (eq? n 0) (null? ll)) ;; mutation happens to occur, or last place for it
-                                 (or (not (eq? (getf meta 'generator) 'pcapng))
+                                 (or (not (eq? (get meta 'generator) 'pcapng))
                                      (pcapng-block-to-mutate? this)))
                            (lets
                               ((ll (cons this ll))
@@ -47,18 +47,18 @@
 
       ;; pat :: rs ll muta meta → ll' ++ (list (tuple rs mutator meta))
       (define (pat-once-dec rs ll mutator meta)
-         (mutate-once rs ll mutator 
+         (mutate-once rs ll mutator
             (put meta 'pattern 'once-dec)
             (λ (ll rs mutator meta)
                (lappend ll (list (tuple rs mutator meta))))))
 
       ;; 1 or more mutations
       (define (pat-many-dec rs ll mutator meta)
-         (mutate-once rs ll mutator 
+         (mutate-once rs ll mutator
             (put meta 'pattern 'many-dec)
             (λ (ll rs mutator meta)
                (lets ((rs muta? (rand-occurs? rs remutate-probability)))
-                  (if muta? 
+                  (if muta?
                      (pat-many-dec rs ll mutator meta)
                      (lappend ll (list (tuple rs mutator meta))))))))
 
@@ -73,7 +73,7 @@
                         (lets ((mutator rs ll meta (mutator rs ll meta)))
                            (loop rs ll mutator meta (+ n 1)))
                         (lappend ll (list (tuple rs mutator meta)))))))))
-           
+
       (define *patterns*
          (list
             (tuple "od" pat-once-dec "Mutate once" )
@@ -104,7 +104,7 @@
             ((ps (map c/=/ (c/,/ str))) ; ((name [priority-str]) ..)
              (ps (map selection->priority ps))
              (ps (map priority->pattern ps)))
-            (if (every self ps) 
+            (if (every self ps)
                (mux-patterns ps)
                #false)))
 ))

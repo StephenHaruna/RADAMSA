@@ -57,7 +57,7 @@
              (sbs (char-suffixes (cdr node))))
             (ff-fold
                (λ (tl char sufs) ;; all suffixes in a after prefix+char
-                  (let ((bs (getf sbs char)))
+                  (let ((bs (get sbs char)))
                      (if bs ;; there were some also in b
                         (cons (cons sufs bs) tl)
                         tl))) ;; nothing shared after char

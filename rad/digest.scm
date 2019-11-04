@@ -23,15 +23,15 @@
       (define null '())
 
       (define (empty-digests max)
-         (tuple #empty max 0))
+         (tuple empty max 0))
 
       (define (dget* tree d)
-         (if (eq? tree #empty)
+         (if (eq? tree empty)
             #false
             (lets ((digit d d))
                (if (null? d)
                   (get tree digit #false)
-                  (dget* (get tree digit #empty) d)))))
+                  (dget* (get tree digit empty) d)))))
 
       (define (dget tree d)
          (dget* (ref tree 1) d))
@@ -40,10 +40,10 @@
          (if (null? (cdr d))
             (put tree (car d) #true)
             (put tree (car d)
-               (dput* (get tree (car d) #empty) (cdr d)))))
+               (dput* (get tree (car d) empty) (cdr d)))))
 
       (define (prune tree size)
-         (tuple #empty size 0))
+         (tuple empty size 0))
 
       (define (grow tree old-size)
          (empty-digests

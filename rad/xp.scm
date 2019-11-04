@@ -176,17 +176,17 @@
       ;; tree (byte ...) → #false | (byte ...)'
       (define (tree-lookup tree lst)
          (cond
-            ((eq? tree #empty) #false)
+            ((eq? tree empty) #false)
             ((null? lst) (get tree null #false))
             (else 
-               (tree-lookup (get tree (car lst) #empty) (cdr lst)))))
+               (tree-lookup (get tree (car lst) empty) (cdr lst)))))
    
       (define (tree-store tree lst)
          (define (store tree left)
             (if (null? left)
                (put tree null lst)
                (put tree (car left)
-                  (store (get tree (car left) #empty) (cdr left)))))
+                  (store (get tree (car left) empty) (cdr left)))))
          (store tree lst))
 
       (define (intern tree lst)
@@ -324,14 +324,14 @@
       ; st is a ff of tag → (tagtype . attrs)
       ; attrs is a ff of attribute → some-seen-value
       (define (add-tag st tag type)
-         (let ((val (getf st tag)))
+         (let ((val (get st tag)))
             (if val
                (if (lesser? type (car val))
                   (put st tag (cons type (cdr val))) ;; update tag type to higher ones (typically 0 -> 2)
                   st)
                (begin
                   ;(print "saw tag " (list->string tag) " for the first time")
-                  (put st tag (cons type #empty))))))
+                  (put st tag (cons type empty))))))
 
       (define (numberish? x)
          (if x 
@@ -360,7 +360,7 @@
             (if (null? attrs)
                st
                (lets
-                  ((info (getf st tag))
+                  ((info (get st tag))
                    (type known info)
                    (attrs 
                      (fold 
@@ -586,7 +586,7 @@
       (define (generate-node rs tags node)
          (lets 
             ((rs tag (random-tag rs tags))
-             (info (getf tags tag))
+             (info (get tags tag))
              (type attrs info)
              (rs attrs (random-attrs rs attrs)))
             ;(print "generating a '" (list->string tag) "'-tag with attrs " attrs)
@@ -740,7 +740,7 @@
                   (values (xp-mutator tree tags) rs ll meta -1))))) ;; Doesn't look too XMLish to me
 
       (define xp-mutate 
-         (xp-mutator #empty #empty))))
+         (xp-mutator empty empty))))
 
 
 

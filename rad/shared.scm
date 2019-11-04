@@ -30,7 +30,7 @@
    (begin
 
       (define null '())
-      
+
       (define avg-block-size 2048)        ; average block size when streaming sample data
       (define min-block-size  256)        ; minimum preferred mutation block size
       (define initial-ip 24)              ; initial max 1/n for basic patterns
@@ -38,7 +38,7 @@
 
       ;; val++ in ff, or insert 1
       (define (inc ff key)
-         (let ((val (getf ff key)))
+         (let ((val (get ff key)))
             (if val
                (fupd ff key (+ val 1))
                (put ff key 1))))
@@ -68,7 +68,7 @@
             (else
                (choose (cdr options) name))))
 
-      (define (car> a b) 
+      (define (car> a b)
          (> (car a) (car b)))
 
       (define (selection->priority lst)
