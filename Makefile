@@ -1,7 +1,7 @@
 DESTDIR=
 PREFIX=/usr
 BINDIR=/bin
-CFLAGS?=-Wall -O2
+CFLAGS?=-Wall -O3
 LDFLAGS?=
 OFLAGS=-O2
 OWLURL=https://gitlab.com/owl-lisp/owl/uploads/92375620fb4d570ee997bc47e2f6ddb7/ol-0.1.21.c.gz
@@ -32,7 +32,7 @@ ol.c:
 
 bin/ol: ol.c
 	mkdir -p bin
-	cc -O2 -o bin/ol ol.c
+	cc $(CFLAGS) -o bin/ol ol.c
 
 install: bin/radamsa
 	-mkdir -p $(DESTDIR)$(PREFIX)/bin
@@ -59,16 +59,9 @@ fasltest: radamsa.fasl
 	sh tests/run bin/radamsa
 	touch .seal-of-quality
 
-# standalone build for shipping
-standalone:
-	-rm radamsa.c # likely old version
-	make radamsa.c
-	# compile without seccomp and use of syscall
-	diet gcc -DNO_SECCOMP -O3 -Wall -o bin/radamsa radamsa.c
-
 # a quick to compile vanilla bytecode executable
 bytecode: bin/ol
-	bin/ol -O0 -x c -o - rad/main.scm | $(CC) -O2 -x c -o bin/radamsa -
+	bin/ol -O0 -x c -o - rad/main.scm | $(CC) $(CFLAGS) -x c -o bin/radamsa -
 	-mkdir -p tmp
 	sh tests/run bin/radamsa
 
@@ -88,7 +81,7 @@ autofuzz: bin/radamsa
 	bin/radamsa -v -o tmp/out-%n -n 200 rad/* bin/* tmp/test.xmlish
 	bin/radamsa -v -o tmp/out-2-%n -n 200 tmp/out-* tmp/test.xmlish
 	bin/radamsa -v -o tmp/out-3-%n -n 200 tmp/out-2-* tmp/test.xmlish
-	# fuzz a million outputs 
+	# fuzz a million outputs
 	bin/radamsa --seed 42 --meta million.meta -n 1000000
 	echo autofuzz complete
 
@@ -102,20 +95,20 @@ c/libradamsa.c: bin/ol c/lib.c rad/*.scm
 
 lib/libradamsa.a: c/libradamsa.c
 	mkdir -p lib
-	cc -O3 -I c -o lib/libradamsa.a -c c/libradamsa.c
+	cc $(CFLAGS) -I c -o lib/libradamsa.a -c c/libradamsa.c
 
 lib/libradamsa.so: c/libradamsa.c
 	mkdir -p lib
 	# temporary hack
 	sed --in-place -e '/radamsa\.h/d' c/libradamsa.c
-	cc -shared -pg -g -O2 -Wall c/libradamsa.c -o lib/libradamsa.so -fPIC
+	cc -shared $(CFLAGS) c/libradamsa.c -o lib/libradamsa.so -fPIC
 
-bin/libradamsa-test: lib/libradamsa.a c/libradamsa-test.c
+bin/libradamsa-test: lib/libradamsa.so c/libradamsa-test.c
 	mkdir -p tmp
-	cc -O2 -Ic -o bin/libradamsa-test c/libradamsa-test.c -Llib -lradamsa
+	cc $(CFLAGS) -Ic -o bin/libradamsa-test c/libradamsa-test.c -Llib -lradamsa
 
 libradamsa-test: bin/libradamsa-test
-	bin/libradamsa-test c/lib.c | grep "library test passed"
+	LD_LIBRARY_PATH=lib:$(LD_LIBRARY_PATH) bin/libradamsa-test c/lib.c | grep "library test passed"
 
 
 ## Cleanup and Meta

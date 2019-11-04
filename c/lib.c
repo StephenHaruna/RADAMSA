@@ -1,6 +1,6 @@
 #include <radamsa.h>
 
-void init() {
+void radamsa_init() {
    int nobjs=0, nwords=0;
    hp = (byte *) &heap; /* builtin heap */
    state = IFALSE;
