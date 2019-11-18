@@ -100,7 +100,7 @@ lib/libradamsa.a: c/libradamsa.c
 lib/libradamsa.so: c/libradamsa.c
 	mkdir -p lib
 	# temporary hack
-	sed --in-place -e '/radamsa\.h/d' c/libradamsa.c
+	sed -i -e '/radamsa\.h/d' c/libradamsa.c
 	cc -shared $(CFLAGS) c/libradamsa.c -o lib/libradamsa.so -fPIC
 
 bin/libradamsa-test: lib/libradamsa.so c/libradamsa-test.c
