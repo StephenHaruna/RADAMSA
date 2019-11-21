@@ -1,6 +1,6 @@
 (import
    (owl base)
-   (only (owl sys) peek-byte)
+   (only (owl sys) peek-byte getenv)
    (only (rad main) urandom-seed)
    (only (rad output) byte-list-checksummer)
    (only (rad mutations)
@@ -131,14 +131,22 @@
 
 ; (define (library-exit value) (print "LIBRARY WOULD RETURN " value) "foo")
 
+(define (debug . what)
+   (if (getenv "RADAMSA_DEBUG")
+      (print-to stderr (apply str (cons "libradamsa/lisp: " what)))))
+
+;(define debug #false)
+
 (define (fuzz muta digests)
    (λ (tuple-from-c)
       (lets
          ((ptr len max seed tuple-from-c)
           (start (time-ms)))
+         (debug "input " tuple-from-c)
          (cond
             ((= len 0)
                ;; dummy handling of empty sample input
+               (debug "dummy")
                ((fuzz muta digests)
                   (library-exit (list (band seed #xff)))))
             (else
@@ -147,7 +155,8 @@
                    (rs inputp (read-memory->chunks rs ptr len))
                    (rs digests muta output
                       (fuzzer rs digests muta inputp)))
-                  ;(print-to stderr "Radamsa took " (- (time-ms) start) "ms")
+                  (debug "input " inputp)
+                  (debug "output " output)
                   ((fuzz muta digests)
                      (library-exit output))))))))
 
