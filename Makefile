@@ -3,7 +3,7 @@ PREFIX=/usr
 BINDIR=/bin
 CFLAGS?=-Wall -O3
 LDFLAGS?=
-OFLAGS=-O2
+OFLAGS=-O1
 OWLURL=https://gitlab.com/owl-lisp/owl/uploads/92375620fb4d570ee997bc47e2f6ddb7/ol-0.1.21.c.gz
 USR_BIN_OL?=/usr/bin/ol
 
@@ -41,13 +41,11 @@ install: bin/radamsa
 	cat doc/radamsa.1 | gzip -9 > $(DESTDIR)$(PREFIX)/share/man/man1/radamsa.1.gz
 
 clean:
-	-rm -rf owl-lisp
 	-rm radamsa.c bin/radamsa .seal-of-quality
-	-rm bin/ol ol.c.gz ol.c
+	-rm bin/ol 
 
 mrproper: clean
-	-rm -rf ol-*
-	-rm -rf owl
+	-rm -rf ol.*
 
 test: .seal-of-quality
 
@@ -108,7 +106,7 @@ bin/libradamsa-test: lib/libradamsa.so c/libradamsa-test.c
 	cc $(CFLAGS) -Ic -o bin/libradamsa-test c/libradamsa-test.c -Llib -lradamsa
 
 libradamsa-test: bin/libradamsa-test
-	LD_LIBRARY_PATH=lib:$(LD_LIBRARY_PATH) bin/libradamsa-test c/lib.c | grep "library test passed"
+	LD_LIBRARY_PATH=lib:$(LD_LIBRARY_PATH) DYLD_LIBRARY_PATH=lib:$(DYLD_LIBRARY_PATH) bin/libradamsa-test c/lib.c | grep "library test passed"
 
 
 ## Cleanup and Meta
