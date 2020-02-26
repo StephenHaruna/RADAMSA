@@ -91,7 +91,7 @@ Radamsa was written by Aki Helin, initially at OUSPG.")
               (csums "-C" "--checksums" has-arg default "10000" cook ,string->natural
                     comment "maximum number of checksums in uniqueness filter (0 disables)")
               (hash "-H" "--hash" cook ,string->hash default "stream"
-                    comment "hash algorithm for uniqueness checks (stream or sha256)")
+                    comment "hash algorithm for uniqueness checks (stream, sha1 or sha256)")
               (verbose "-v" "--verbose" comment "show progress during generation"))))
 
       ;; () → string
@@ -314,7 +314,9 @@ Radamsa was written by Aki Helin, initially at OUSPG.")
                      (string->outputs
                         (get dict 'output-pattern)
                         (get dict 'count)
-                        (pick-suffix paths))))
+                        (pick-suffix paths)
+                        (not (eq? (get dict 'csums) 0))
+                        )))
                   (if os
                      (start-radamsa (put dict 'output os) paths)
                      1)))

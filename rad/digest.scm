@@ -171,10 +171,17 @@
                (bytes->trits bs)
                (hex-encode-list bs))))
 
+      (define (hash-sha1 lst)
+         (let ((bs (sha1-bytes lst)))
+            (values
+               (bytes->trits bs)
+               (hex-encode-list bs))))
+
       (define (string->hash s)
          (cond
             ((string-ci=? s "stream") hash-stream)
             ((string-ci=? s "sha256") hash-sha256)
+            ((string-ci=? s "sha1") hash-sha1)
             ((string-ci=? s "sha") hash-sha256)
             (else #f)))
 

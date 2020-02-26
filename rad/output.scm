@@ -282,7 +282,7 @@
                   #false))))
       
       ;; o n → (out :: → out' fd meta) v null | #false, where os is string from -o, and n is number from -n
-      (define (string->outputs str n suf)
+      (define (string->outputs str n suf hashing-enabled?)
          (cond
             ((equal? str "-") ;; conventional way to ask for standard output (and input)
                stdout-stream)
@@ -326,8 +326,10 @@
                         (make-udp-client (list->vector bs) port))
                      (else
                         (tcp-client (list->vector bs) port)))))
-            ((and (> n 1) (not (m/%(0[1-9][0-9]*)?n/ str)))
-               (print-to stderr "Refusing to overwrite file '" str "' many times. You should add %n or %0[padding]n to the path.")
+            ((and (> n 1)
+                  (not (m/%(0[1-9][0-9]*)?n/ str))
+                  (not (and hashing-enabled? (m/%h/ str))))
+               (print-to stderr "Refusing to overwrite file '" str "' many times. You should add %n, %0[padding]n to the path, or enable hashing and use %h.")
                #false)
             (else
                (file-writer str suf))))
