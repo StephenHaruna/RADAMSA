@@ -41,8 +41,8 @@ install: bin/radamsa
 	cat doc/radamsa.1 | gzip -9 > $(DESTDIR)$(PREFIX)/share/man/man1/radamsa.1.gz
 
 clean:
-	-rm radamsa.c bin/radamsa .seal-of-quality
-	-rm bin/ol 
+	-rm -f radamsa.c c/libradamsa.c lib/libradamsa.a lib/libradamsa.so bin/radamsa .seal-of-quality
+	-rm -f bin/ol
 
 mrproper: clean
 	-rm -rf ol.*
@@ -91,9 +91,12 @@ c/libradamsa.c: bin/ol c/lib.c rad/*.scm
 	sed -i 's/int main/int secondary/' c/libradamsa.c
 	cat c/lib.c >> c/libradamsa.c
 
-lib/libradamsa.a: c/libradamsa.c
+lib/libradamsa.o: c/libradamsa.c
 	mkdir -p lib
-	cc $(CFLAGS) -I c -o lib/libradamsa.a -c c/libradamsa.c
+	cc $(CFLAGS) -I c -o lib/libradamsa.o -c c/libradamsa.c
+
+lib/libradamsa.a: lib/libradamsa.o
+	ar crs lib/libradamsa.a lib/libradamsa.o
 
 lib/libradamsa.so: c/libradamsa.c
 	mkdir -p lib
